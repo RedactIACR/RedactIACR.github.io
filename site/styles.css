@@ -177,7 +177,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 60px; }
   box-shadow: 0 3px 16px rgba(0, 0, 0, 0.45);
   flex: none;
 }
-.page canvas { display: block; border-radius: 3px; }
+/* The paper stays invisible until its redactions are painted and the bitmap
+   matches the current scale. Belt and braces against ever showing the page
+   unredacted, even for one frame. */
+.page canvas { display: block; border-radius: 3px; visibility: hidden; }
+.page.ready canvas { visibility: visible; }
 
 .redactions {
   position: absolute;

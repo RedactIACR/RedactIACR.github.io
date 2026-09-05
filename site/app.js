@@ -193,6 +193,8 @@ function buildViewer() {
 
 async function renderPage(view) {
   if (view.rendered || view.busy) return;
+  // Never rasterise a page whose redactions we do not have.
+  if (!state.puzzle.pages[view.index]) return;
   view.busy = true;
   const token = state.renderToken;
 
@@ -207,6 +209,11 @@ async function renderPage(view) {
     view.canvas.style.width = `${Math.floor(viewport.width)}px`;
     view.canvas.style.height = `${Math.floor(viewport.height)}px`;
 
+    // Cover the page before a single pixel of it is drawn. pdf.js paints
+    // progressively into a canvas that is already in the document, so boxes
+    // added after the render let the paper be read while it draws.
+    paintBoxes(view);
+
     await page.render({
       canvasContext: view.canvas.getContext('2d', { alpha: false }),
       viewport,
@@ -215,7 +222,9 @@ async function renderPage(view) {
 
     if (token !== state.renderToken) { view.busy = false; return; }
     view.rendered = true;
-    paintBoxes(view);
+    // Only now is it safe to show: redactions are up and the bitmap matches
+    // the current scale.
+    view.wrap.classList.add('ready');
   } catch (error) {
     if (error?.name !== 'RenderingCancelledException') console.error(error);
   }
@@ -276,6 +285,9 @@ function rescale() {
     view.wrap.style.width = `${Math.round(page.w * scale)}px`;
     view.wrap.style.height = `${Math.round(page.h * scale)}px`;
     view.rendered = false;
+    // Hide again: the bitmap still holds the old scale, so leaving it up
+    // would show text drifting out from under its rectangles.
+    view.wrap.classList.remove('ready');
     view.overlay.textContent = '';
     view.boxes = [];
   }
@@ -287,20 +299,29 @@ function rescale() {
 
 /* ------------------------------------------------------------------ guess */
 
-function applyGuess(word, { flash = true } = {}) {
-  const key = state.keyLookup.get(word);
-  if (key === undefined || state.revealed.has(key)) return 0;
-
+/* How many still-hidden boxes this key would uncover. */
+function countHits(key) {
   let hits = 0;
   for (const page of state.puzzle.pages) {
-    for (const box of page.words) if (box[4] === key) hits += 1;
+    // Words handed over for free were never covered, so uncovering them is
+    // not a hit — counting them would inflate both accuracy and progress.
+    if (!state.free[key]) {
+      for (const box of page.words) if (box[4] === key) hits += 1;
+    }
     for (const box of page.math) {
       // A formula already uncovered by one of its other identifiers must not
       // be counted a second time.
       if (box[4].includes(key) && !box[4].some((k) => k !== key && state.revealed.has(k))) hits += 1;
     }
   }
+  return hits;
+}
 
+function applyGuess(word, { flash = true } = {}) {
+  const key = state.keyLookup.get(word);
+  if (key === undefined || state.revealed.has(key)) return 0;
+
+  const hits = countHits(key);
   state.revealed.add(key);
   state.revealedBoxes += hits;
   clearRevealedBoxes({ flash });
@@ -313,6 +334,14 @@ function submitGuess(raw) {
 
   if (state.guessed.has(word)) {
     focusOn(word);
+    flashInput();
+    return;
+  }
+
+  // A word shown for free is already on the page, so it is not a guess at
+  // all: recording it would either flatter accuracy or punish it unfairly.
+  const known = state.keyLookup.get(word);
+  if (isFree(word) && (known === undefined || countHits(known) === 0)) {
     flashInput();
     return;
   }
