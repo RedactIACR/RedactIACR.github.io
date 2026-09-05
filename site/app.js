@@ -811,7 +811,10 @@ async function boot() {
 
   buildViewer();
 
-  const dayNumber = index.dates.indexOf(today) + 1;
+  // Counted from the schedule's epoch, since only a window of days is served.
+  const dayNumber = index.epoch
+    ? dayGap(index.epoch, today) + 1
+    : index.dates.indexOf(today) + 1;
   $('puzzle-label').textContent = `#${dayNumber} · ${today}`;
   document.title = `Redact IACR #${dayNumber}`;
 

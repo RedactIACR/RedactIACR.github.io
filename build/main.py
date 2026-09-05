@@ -1,10 +1,18 @@
-"""Build the daily puzzle schedule.
+"""Build the daily puzzles.
 
-    python -m build.main --days 100
+    python -m build.main --plan --days 180    # decide which paper runs on which day
+    python -m build.main                      # build the days around today
 
-Harvests IACR metadata, joins it to find CRYPTO/EUROCRYPT/TCC papers that are
-also on ePrint, picks one paper per day, and downloads and extracts only the
-PDFs it actually scheduled.
+Scheduling and building are deliberately separate. Which paper falls on which
+day is decided once and written to `schedule.json`, which is committed; builds
+then read that file. Re-deriving the schedule on every build would be unstable
+in two ways: the shuffle is positional, so a build starting "today" would hand
+the same paper to every first day, and the pool grows as IACR publishes, which
+reshuffles every later assignment too.
+
+Planning needs the network (IACR metadata plus every scheduled PDF, which it
+downloads to prove the paper is usable). Building needs only the PDFs, which
+are cached, so routine deploys touch eprint.iacr.org once per new day.
 """
 
 from __future__ import annotations
@@ -12,7 +20,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import shutil
+import os
 import time
 from pathlib import Path
 
@@ -23,6 +31,7 @@ from .harvest import _fetch, harvest_cryptodb, harvest_eprint
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
 OUT = ROOT / "site" / "puzzles"
+LOCK = ROOT / "schedule.json"
 
 
 def fetch_pdf(eprint_id: str, *, refresh: bool = False) -> bytes:
@@ -69,18 +78,24 @@ def build_puzzle(date: str, paper: dict) -> dict:
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--days", type=int, default=100, help="days of puzzles to build")
-    parser.add_argument("--start", default="", help="first puzzle date (default: today, UTC)")
-    parser.add_argument("--seed", type=int, default=20260901, help="schedule shuffle seed")
-    parser.add_argument("--refresh", action="store_true", help="re-harvest IACR metadata")
-    parser.add_argument("--keep", action="store_true", help="keep existing puzzle files")
-    args = parser.parse_args()
+# ----------------------------------------------------------------- schedule
 
+def load_lock() -> dict:
+    if not LOCK.exists():
+        return {"v": 1, "seed": None, "days": {}}
+    return json.loads(LOCK.read_text(encoding="utf-8"))
+
+
+def save_lock(lock: dict) -> None:
+    lock["days"] = dict(sorted(lock["days"].items()))
+    LOCK.write_text(json.dumps(lock, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+
+
+def plan(args) -> None:
+    """Extend the schedule, without ever moving a day that is already fixed."""
+    lock = load_lock()
+    taken = {entry["id"] for entry in lock["days"].values()}
     start = dt.date.fromisoformat(args.start) if args.start else dt.datetime.now(dt.UTC).date()
-    CACHE.mkdir(parents=True, exist_ok=True)
-    OUT.mkdir(parents=True, exist_ok=True)
 
     print("harvesting CryptoDB (CRYPTO / EUROCRYPT / TCC)...")
     cryptodb = harvest_cryptodb(CACHE, start.year + 1, refresh=args.refresh)
@@ -93,53 +108,118 @@ def main() -> None:
     papers = join_venues(cryptodb, eprint)
     print(f"joined: {len(papers)} conference papers are also on ePrint")
 
-    existing = _existing_ids() if args.keep else {}
-    if not args.keep:
-        for stale in OUT.glob("*.json"):
-            stale.unlink()
-        shutil.rmtree(OUT / "pdf", ignore_errors=True)
+    wanted = [
+        (start + dt.timedelta(days=i)).isoformat()
+        for i in range(args.days)
+        if (start + dt.timedelta(days=i)).isoformat() not in lock["days"]
+    ]
+    if not wanted:
+        print(f"schedule already covers {args.days} days from {start}")
+        return
 
-    schedule = build_schedule(papers, start, args.days, args.seed, set(existing.values()))
-    print(f"scheduling {len(schedule)} days from {schedule[0][0]} to {schedule[-1][0]}")
+    # Draw enough for the unfilled days plus replacements for unusable PDFs.
+    draw = build_schedule(papers, start, min(len(wanted) + 60, len(papers)), args.seed, taken)
+    queue = [paper for _, paper in draw]
+    print(f"planning {len(wanted)} new days ({wanted[0]} .. {wanted[-1]})")
 
-    index: list[dict] = []
-    skipped: list[str] = []
-    queue = list(schedule)
-    spare = _spares(papers, schedule, existing)
-
-    for date, paper in queue:
-        iso = date.isoformat()
-        while True:
+    added = 0
+    for iso in wanted:
+        while queue:
+            paper = queue.pop(0)
             try:
-                puzzle = build_puzzle(iso, paper)
-                break
+                # Building it here is the point: a day only enters the
+                # schedule once its PDF is proven to extract.
+                build_puzzle(iso, paper)
             except (ExtractionError, RuntimeError) as exc:
-                # A handful of ePrint PDFs are scans, malformed, or withdrawn.
-                # Swap in a replacement rather than losing the day.
-                skipped.append(f"{paper['id']}: {exc}")
-                if not spare:
-                    raise SystemExit(f"ran out of replacement papers at {iso}")
-                paper = spare.pop()
+                print(f"  skip {paper['id']}: {exc}")
+                continue
+            lock["days"][iso] = {
+                "id": paper["id"], "venue": paper["venue"], "year": paper["year"],
+                "title": paper["title"], "authors": paper["authors"],
+            }
+            print(f"  {iso}  {paper['venue']} {paper['year']}  {paper['id']}")
+            added += 1
+            break
+        else:
+            raise SystemExit(f"ran out of usable papers at {iso}")
 
+    lock["seed"] = args.seed
+    lock["generated"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
+    save_lock(lock)
+    print(f"\nschedule now covers {len(lock['days'])} days, {added} added -> {LOCK}")
+
+
+# -------------------------------------------------------------------- build
+
+def build(args) -> None:
+    """Emit the puzzle files for the days around today."""
+    lock = load_lock()
+    if not lock["days"]:
+        raise SystemExit(f"no schedule at {LOCK}; run with --plan first")
+
+    today = dt.date.fromisoformat(args.today) if args.today else dt.datetime.now(dt.UTC).date()
+    if args.all:
+        wanted = sorted(lock["days"])
+    else:
+        window = {
+            (today + dt.timedelta(days=offset)).isoformat()
+            for offset in range(-args.back, args.horizon + 1)
+        }
+        wanted = sorted(window & set(lock["days"]))
+
+    if not wanted:
+        raise SystemExit(
+            f"schedule has nothing for {today}; its last day is {max(lock['days'])}"
+        )
+
+    missing = [
+        (today + dt.timedelta(days=offset)).isoformat()
+        for offset in range(0, args.horizon + 1)
+        if (today + dt.timedelta(days=offset)).isoformat() not in lock["days"]
+    ]
+    if missing:
+        note = (f"schedule runs out on {max(lock['days'])}; {len(missing)} of the next "
+                f"{args.horizon} days are unplanned - run: python -m build.main --plan")
+        # Surface it as a CI annotation, not just a line in a long log.
+        print(f"::warning::{note}" if os.environ.get("GITHUB_ACTIONS") else f"warning: {note}")
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    keep = set(wanted)
+
+    # Only today's puzzle is ever served, so days outside the window are dead
+    # weight on a Pages site with a size budget.
+    for stale in OUT.glob("*.json"):
+        if stale.name != "index.json" and stale.stem not in keep:
+            stale.unlink()
+    for stale in (OUT / "pdf").glob("*.pdf"):
+        if stale.stem not in keep:
+            stale.unlink()
+
+    built = 0
+    for iso in wanted:
+        if (OUT / f"{iso}.json").exists() and (OUT / "pdf" / f"{iso}.pdf").exists() and not args.force:
+            continue
+        paper = lock["days"][iso]
+        puzzle = build_puzzle(iso, paper)
         (OUT / f"{iso}.json").write_text(
             json.dumps(puzzle, ensure_ascii=False, separators=(",", ":")),
             encoding="utf-8",
         )
-
-        index.append({"date": iso, "id": paper["id"]})
+        built += 1
         print(
             f"  {iso}  {paper['venue']} {paper['year']}  {paper['id']}  "
             f"{puzzle['stats']['words']} words  {puzzle['stats']['formulas']} formulas"
         )
 
-    # Index every puzzle file present, not just the ones this run produced, so
-    # that `--keep` extends the schedule instead of orphaning earlier days.
     dates = sorted(path.stem for path in OUT.glob("*.json") if path.name != "index.json")
     (OUT / "index.json").write_text(
         json.dumps(
             {
                 "v": 1,
                 "built": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+                # Day one of the whole schedule, not of this window: the puzzle
+                # number has to keep counting as the served window rolls on.
+                "epoch": min(lock["days"]),
                 "start": dates[0],
                 "end": dates[-1],
                 "days": len(dates),
@@ -150,30 +230,30 @@ def main() -> None:
         ),
         encoding="utf-8",
     )
-
-    print(f"\nwrote {len(index)} puzzles; index now covers {len(dates)} days in {OUT}")
-    if skipped:
-        print(f"replaced {len(skipped)} unusable papers:")
-        for line in skipped:
-            print(f"  - {line}")
+    print(f"\nbuilt {built} new puzzles; site now serves {len(dates)} days ({dates[0]} .. {dates[-1]})")
 
 
-def _existing_ids() -> dict[str, str]:
-    """Map date -> ePrint id for puzzles a previous build already produced."""
-    found: dict[str, str] = {}
-    for path in sorted(OUT.glob("*.json")):
-        if path.name == "index.json":
-            continue
-        try:
-            found[path.stem] = json.loads(path.read_text(encoding="utf-8"))["id"]
-        except Exception:  # noqa: BLE001 - a corrupt file just gets rebuilt
-            continue
-    return found
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--plan", action="store_true", help="extend schedule.json instead of building")
+    parser.add_argument("--days", type=int, default=180, help="days to plan ahead (--plan)")
+    parser.add_argument("--start", default="", help="first day to plan (--plan, default: today UTC)")
+    parser.add_argument("--seed", type=int, default=20260901, help="schedule shuffle seed (--plan)")
+    parser.add_argument("--refresh", action="store_true", help="re-harvest IACR metadata (--plan)")
+    parser.add_argument("--back", type=int, default=2, help="days before today to keep serving")
+    parser.add_argument("--horizon", type=int, default=21, help="days ahead to build")
+    parser.add_argument("--today", default="", help="override today's date (testing)")
+    parser.add_argument("--all", action="store_true", help="build every day in the schedule")
+    parser.add_argument("--force", action="store_true", help="rebuild days that already exist")
+    args = parser.parse_args()
 
-
-def _spares(papers: list[dict], schedule, existing: dict[str, str]) -> list[dict]:
-    used = {paper["id"] for _, paper in schedule} | set(existing.values())
-    return [paper for paper in papers if paper["id"] not in used][:400]
+    CACHE.mkdir(parents=True, exist_ok=True)
+    if args.plan:
+        plan(args)
+    else:
+        build(args)
 
 
 if __name__ == "__main__":

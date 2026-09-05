@@ -17,14 +17,49 @@ puzzles ahead of time, and the browser plays them with no server involved.
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m build.main --days 100      # ~15 minutes on a cold cache
+.venv/bin/python -m build.main --plan --days 180   # decide the schedule (slow, once)
+.venv/bin/python -m build.main                     # build the days around today
 .venv/bin/python -m http.server 8000 --directory site
 ```
 
 Then open <http://localhost:8000>.
 
-Deploy by serving `site/` as static files — GitHub Pages, Netlify, S3, anything.
-There is no build step for the frontend and no runtime dependency.
+Scheduling and building are separate on purpose. **Which paper falls on which
+day is decided once** and committed to `schedule.json`; builds then read that
+file. Re-deriving the schedule per build would be unstable twice over: the
+shuffle is positional, so a build starting "today" hands the same paper to
+every first day, and the pool grows as IACR publishes, which reshuffles every
+later assignment.
+
+`--plan` needs the network (IACR metadata, plus every newly scheduled PDF,
+which it downloads to prove the paper extracts before fixing it in the
+schedule). A plain build needs only PDFs, which are cached — so a routine
+deploy fetches one new paper.
+
+## Automatic deployment
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and
+publishes to GitHub Pages on every push and daily at 03:20 UTC. Enable it under
+**Settings → Pages → Source → GitHub Actions**.
+
+The site serves a rolling window — two days back, three weeks ahead — rather
+than the whole schedule, because only one day is ever playable. That keeps it
+near 25 MB instead of growing without bound, and means tomorrow's puzzle is
+already published before midnight, so the 00:00 UTC rollover is seamless even
+if a run is late. A warm-cache rebuild takes about nine seconds.
+
+`site/puzzles/` is therefore **not committed**: CI generates it and uploads it
+straight to Pages, so the repository stays small.
+
+When the schedule starts running out the deploy logs a CI warning. Run
+[`.github/workflows/plan.yml`](.github/workflows/plan.yml) ("Extend the
+schedule") from the Actions tab; it plans further ahead and commits the result.
+
+Two GitHub limits worth knowing: Pages allows a 1 GB site and roughly 100 GB of
+bandwidth a month, and a play costs about 1 MB (the PDF plus its boxes), so the
+ceiling is on the order of 100,000 plays a month. Separately, GitHub disables
+scheduled workflows after 60 days with no repository activity — if the game
+ever goes quiet for that long, re-enable it from the Actions tab.
 
 ## How the corpus is assembled
 
@@ -89,7 +124,7 @@ Each day ships as `site/puzzles/<date>.json` (metadata plus box geometry) and
 shared key table, since words repeat constantly; that alone is most of the
 difference between a 700 KB payload and a 350 KB one.
 
-Nothing is obfuscated. A hundred days are built ahead of time, so anyone who
+Nothing is obfuscated. Three weeks are published ahead of time, so anyone who
 opens tomorrow's PDF can read the answer early.
 
 pdf.js is vendored under `site/vendor/` (345 KB plus a 1.4 MB worker), so the
@@ -97,26 +132,31 @@ site has no CDN dependency and works offline.
 
 ## Extending the schedule
 
-Puzzle days run out 100 days after the build. To add more without disturbing
-days already published:
-
 ```sh
-.venv/bin/python -m build.main --days 100 --start 2026-12-11 --keep
+.venv/bin/python -m build.main --plan --days 365            # cover a year from today
+.venv/bin/python -m build.main --plan --days 365 --refresh  # ... and re-harvest IACR first
 ```
 
-`--keep` preserves existing puzzle files and excludes their papers from the new
-draw, so no paper repeats. Drop `--keep` to regenerate from scratch. Use
-`--refresh` to re-harvest IACR metadata (worth doing once a year, as new
-conference proceedings appear).
+Planning is **append-only**: a day already in `schedule.json` is never
+reassigned, and papers already scheduled are excluded from the draw, so nothing
+repeats and no published day changes. `--refresh` re-harvests IACR metadata,
+worth doing once a year as new proceedings appear.
+
+Useful build flags: `--all` builds every day in the schedule rather than the
+window, `--today` overrides the date for testing, and `--force` rebuilds days
+that already exist.
 
 ## Layout
 
 ```
+schedule.json  committed: which paper runs on which day, append-only
+.github/
+  workflows/   daily build + Pages deploy; manual schedule extension
 build/
   harvest.py   CryptoDB + ePrint OAI-PMH harvesting, disk-cached
   corpus.py    title-normalised join, seeded daily schedule
   boxes.py     PDF -> redaction rectangles (maths by font, hyphenation, keys)
-  main.py      orchestrator CLI
+  main.py      orchestrator CLI (--plan to schedule, default to build)
 site/
   index.html   markup
   styles.css   styling

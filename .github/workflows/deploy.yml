@@ -1,0 +1,65 @@
+name: Build and deploy
+
+# The site only ever serves one day at a time, so this rebuilds a rolling
+# window around today and publishes it. Tomorrow's puzzle is already on the
+# site before midnight, which makes the 00:00 UTC rollover seamless even if a
+# run is late or fails.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "20 3 * * *"      # daily, 03:20 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; queue instead of cancelling, so a half-finished
+# build never becomes the live site.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # Downloaded PDFs and IACR metadata. Keyed per run so the cache is always
+      # rewritten, with a prefix restore so each run starts from the last one:
+      # a routine day then fetches a single new PDF from eprint.iacr.org.
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: iacr-cache-${{ github.run_id }}
+          restore-keys: iacr-cache-
+
+      - name: Build the rolling window
+        run: python -m build.main
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,65 @@
+name: Extend the schedule
+
+# Deciding which paper runs on which day is deliberately not automatic: the
+# result is committed to schedule.json so that a day, once fixed, never moves.
+# Run this when the deploy workflow warns that the schedule is running out.
+#
+# It downloads every newly scheduled PDF to prove the paper extracts before
+# committing it, so a run takes a while and is quite chatty towards ePrint.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Days to cover from today"
+        default: "180"
+      refresh:
+        description: "Re-harvest IACR metadata (new proceedings)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plan
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Restore build cache
+        uses: actions/cache@v4
+        with:
+          path: cache
+          key: iacr-cache-${{ github.run_id }}
+          restore-keys: iacr-cache-
+
+      - name: Extend schedule.json
+        run: |
+          python -m build.main --plan \
+            --days "${{ inputs.days }}" \
+            ${{ inputs.refresh && '--refresh' || '' }}
+
+      - name: Commit if the schedule grew
+        run: |
+          if git diff --quiet -- schedule.json; then
+            echo "schedule.json unchanged"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add schedule.json
+          git commit -m "Extend puzzle schedule through $(python -c "import json;print(max(json.load(open('schedule.json'))['days']))")"
+          git push
