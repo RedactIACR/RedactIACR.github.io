@@ -1,0 +1,597 @@
+:root {
+  --bg: #14161a;
+  --panel: #1c1f25;
+  --line: #2c313a;
+  --ink: #e8e6e3;
+  --muted: #9aa3b2;
+  --accent: #6ea8fe;
+  --hit: #f2c94c;
+  --win: #5bd6a0;
+  --danger: #f0806c;
+  --paper: #f6f4ef;
+  --paper-ink: #16181c;
+  --redact: #16181c;
+  --redact-math: #2a2118;
+  --focus: #ff7a45;
+  --radius: 10px;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Source Serif Pro", Georgia, serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+/* The header and the guess bar scroll as one pinned unit. Its height varies
+   (the guess bar wraps on narrow screens), so app.js publishes the measured
+   height as --head-h for anything that needs to clear it. */
+.sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* Brand, guess box, counters and controls share one row, so the pinned head
+   costs as little of the page as possible. */
+.topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 9px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.topbar .brand { flex: none; }
+/* min-width:0 is required: the form is itself a flex container, so its
+   automatic minimum size would otherwise keep it from sharing a row. */
+.topbar #guess-form { flex: 1 1 240px; max-width: 400px; min-width: 0; }
+.topbar .counters { margin-left: auto; }
+.topbar .topbar-meta { flex: none; }
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand h1 { font-size: 17px; margin: 0; letter-spacing: -0.01em; font-weight: 700; }
+.brand-thin { color: var(--muted); font-weight: 400; margin-left: 2px; }
+.brand-mark {
+  width: 28px; height: 16px; border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--ink) 0 11px, transparent 11px 14px);
+}
+
+.topbar-meta { display: flex; align-items: center; gap: 8px; }
+
+.pill {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--muted); }
+
+/* Only useful where the sidebar collapses into a sheet. */
+.guesses-btn { display: none; }
+.guesses-btn {
+  width: auto;
+  gap: 6px;
+  padding: 0 9px;
+  align-items: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.guesses-icon {
+  width: 12px; height: 10px;
+  background: repeating-linear-gradient(180deg, currentColor 0 2px, transparent 2px 4px);
+  border-radius: 1px;
+}
+.guesses-btn[aria-expanded="true"] { color: var(--ink); border-color: var(--muted); }
+
+.sheet-backdrop { display: none; }
+
+/* -------------------------------------------------------------- guess bar */
+
+main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 60px; }
+
+#guess-form { display: flex; gap: 8px; }
+
+#guess-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 15px;
+  font-family: var(--sans);
+}
+#guess-input:focus { outline: none; border-color: var(--accent); }
+#guess-input:disabled { opacity: 0.5; }
+
+#guess-submit {
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #0d1117;
+  font-weight: 650;
+  cursor: pointer;
+  font-size: 15px;
+}
+#guess-submit:disabled { opacity: 0.4; cursor: default; }
+
+.counters { display: flex; gap: 18px; }
+.counter { text-align: right; line-height: 1.15; }
+.counter span { display: block; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.counter label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ---------------------------------------------------------------- layout */
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 264px; gap: 20px; align-items: start; }
+
+/* ---------------------------------------------------------------- viewer */
+
+.viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-height: 60vh;
+  overflow-x: auto;
+}
+
+.viewer .loading, .viewer .error {
+  color: var(--muted);
+  text-align: center;
+  padding: 80px 0;
+}
+.viewer .error { color: #ff8a8a; }
+
+/* One rendered PDF page, with its redactions laid over the canvas. */
+.page {
+  position: relative;
+  background: #fff;
+  border-radius: 3px;
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.45);
+  flex: none;
+}
+.page canvas { display: block; border-radius: 3px; }
+
+.redactions {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Each redaction is one rectangle over the words it hides. */
+.redactions i {
+  position: absolute;
+  background: var(--redact);
+  border-radius: 1px;
+}
+.redactions i.math { background: var(--redact-math); }
+
+/* Briefly mark what a guess just uncovered, then fade out. */
+.redactions i.flash {
+  background: var(--hit);
+  opacity: 0.55;
+  animation: flash-out 1.2s ease-out forwards;
+}
+@keyframes flash-out { to { opacity: 0; } }
+
+.redactions i.spotlight {
+  background: transparent;
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .redactions i.flash { animation: none; opacity: 0; }
+}
+
+/* --------------------------------------------------------------- sidebar */
+
+.sidebar {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  position: sticky;
+  top: calc(var(--head-h, 118px) + 12px);
+}
+
+.sidebar-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.sidebar-head h2 { font-size: 13px; margin: 0; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+
+.sort-toggle { display: flex; gap: 2px; }
+.sort-toggle button {
+  background: transparent; border: none; color: var(--muted);
+  font-size: 11px; cursor: pointer; padding: 2px 5px; border-radius: 5px;
+}
+.sort-toggle button.active { background: var(--line); color: var(--ink); }
+
+.guess-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  max-height: 56vh;
+  overflow-y: auto;
+  font-size: 13.5px;
+}
+
+.guess-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.guess-list li:hover { background: #23272f; }
+.guess-list li.zero { color: #6b7280; }
+.guess-list li .n { font-variant-numeric: tabular-nums; color: var(--muted); }
+.guess-list li.zero .n { color: #4b5563; }
+.guess-list li.active { background: #2b3038; }
+.guess-list .word { overflow: hidden; text-overflow: ellipsis; }
+
+.giveup {
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+/* One segmented control rather than two buttons flung to the edges. */
+.zoom {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: stretch;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.zoom button {
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+}
+.zoom button:hover:not(:disabled) { background: #23272f; color: var(--ink); }
+.zoom button:disabled { opacity: 0.35; cursor: default; }
+#zoom-out { border-right: 1px solid var(--line); }
+#zoom-in { border-left: 1px solid var(--line); }
+
+#zoom-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.giveup:hover { color: #ff8a8a; border-color: #6b2a2a; }
+.giveup.done, .giveup.done:hover { color: var(--ink); border-color: var(--line); }
+.giveup.done:hover { border-color: var(--muted); }
+
+/* ---------------------------------------------------------------- result */
+
+.result {
+  padding: 0;
+  overflow: hidden;
+  width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.result[open] { animation: result-in 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.result::backdrop { backdrop-filter: blur(3px); }
+
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .result[open] { animation: none; }
+}
+
+/* The ribbon carries the outcome, so the card reads before you do. */
+.result-ribbon { height: 4px; background: linear-gradient(90deg, var(--win), var(--accent)); }
+.result.lost .result-ribbon { background: linear-gradient(90deg, #6b7484, var(--line)); }
+
+.result-body { padding: 22px 26px 20px; }
+
+.result-kicker {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--win);
+}
+.result.lost .result-kicker { color: var(--muted); }
+
+.result-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.32;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+
+.result-authors { margin: 0 0 14px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+
+.result-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.result-tags span {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.result-tags span.venue { color: var(--ink); border-color: var(--muted); }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.result-stats div { background: #22262e; padding: 11px 6px; text-align: center; }
+.result-stats span {
+  display: block;
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.result-stats label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.result-note { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+.result-note:empty { display: none; }
+
+.result-actions { display: flex; gap: 8px; margin-top: 18px; }
+
+.btn-primary, .btn-ghost {
+  padding: 9px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+}
+.btn-primary {
+  flex: 1;
+  background: var(--win);
+  border-color: var(--win);
+  color: #0d1117;
+  font-weight: 650;
+}
+.btn-primary:hover { filter: brightness(1.07); }
+.btn-ghost:hover { border-color: var(--muted); }
+.result.lost .btn-primary { background: var(--accent); border-color: var(--accent); }
+
+@media (max-width: 480px) {
+  .result-actions { flex-wrap: wrap; }
+  .btn-primary { flex: 1 1 100%; }
+  .btn-ghost { flex: 1; }
+}
+
+/* Confirmation, styled as a smaller sibling of the result card. Native
+   confirm() cannot be themed, so the game ships its own. */
+.confirm { width: min(400px, calc(100vw - 32px)); }
+.confirm .result-ribbon { background: linear-gradient(90deg, var(--danger), #b4533f); }
+.confirm .result-kicker { color: var(--danger); margin-bottom: 10px; }
+.confirm .result-body { padding: 20px 24px 18px; }
+.confirm .result-actions { margin-top: 20px; }
+.confirm .btn-primary { background: var(--danger); border-color: var(--danger); color: #1b0f0c; }
+
+.confirm-text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--muted); }
+
+/* --------------------------------------------------------------- dialogs */
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+  width: min(540px, calc(100vw - 40px));
+  padding: 24px 26px;
+  font-size: 14px;
+}
+dialog::backdrop { background: rgba(8, 9, 12, 0.72); }
+dialog h2 { margin: 0 0 12px; font-size: 18px; }
+dialog ul { padding-left: 18px; }
+dialog li { margin-bottom: 7px; }
+dialog code, .mono { font-family: var(--mono); font-size: 0.9em; background: #262b33; padding: 1px 5px; border-radius: 4px; }
+dialog form { margin-top: 16px; text-align: right; }
+dialog form button {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--accent); color: #0d1117; font-weight: 650; cursor: pointer;
+}
+.fineprint { color: var(--muted); font-size: 12.5px; }
+
+#dlg-stats { width: min(720px, calc(100vw - 32px)); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; text-align: center; }
+.stats-grid div {
+  background: #22262e;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 4px;
+}
+.stats-grid div span {
+  display: block;
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.stats-grid div label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.history { margin-top: 16px; max-height: 300px; overflow-y: auto; }
+.history-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+
+.history-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.history-table th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 8px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.history-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid #23272f;
+  color: var(--ink);
+  white-space: nowrap;   /* dates and durations must not break across lines */
+}
+.history-table th.num, .history-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.history-table td.paper { color: var(--muted); white-space: nowrap; cursor: help; }
+.history-table td.result { color: var(--win); }
+.history-table tr.lost td.result { color: var(--muted); }
+.history-table tr.lost td { color: var(--muted); }
+
+@media (max-width: 620px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .history-table th:nth-child(5), .history-table td:nth-child(5),
+  .history-table th:nth-child(7), .history-table td:nth-child(7) { display: none; }
+}
+
+/* ---------------------------------------------------------------- footer */
+
+footer {
+  text-align: center;
+  color: #6b7280;
+  font-size: 12px;
+  padding: 22px 20px 34px;
+  border-top: 1px solid var(--line);
+}
+footer a { color: #8b93a1; }
+
+/* ------------------------------------------------------------ responsive
+   These live last on purpose: they override base rules of equal specificity,
+   so cascade order is what makes them win. */
+
+/* Below this width the sidebar becomes a bottom sheet. Left in the flow it
+   would scroll away, putting the guess list out of reach exactly when a
+   player has scrolled deep enough to need it. */
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .guesses-btn { display: inline-flex; }
+
+  .sidebar {
+    position: fixed;
+    /* top must be cleared: the desktop rule pins it below the header, and a
+       box with both top and bottom set ignores bottom. */
+    top: auto;
+    left: 0; right: 0; bottom: 0;
+    z-index: 40;
+    margin: 0;
+    max-height: min(70vh, 460px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+    padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.55);
+    transform: translateY(101%);
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+    visibility: hidden;
+  }
+  .sidebar.open { transform: none; visibility: visible; }
+
+  /* A grab handle, so the sheet reads as draggable-looking furniture. */
+  .sidebar::before {
+    content: "";
+    width: 34px; height: 4px;
+    margin: 0 auto 8px;
+    border-radius: 2px;
+    background: var(--line);
+    flex: none;
+  }
+
+  .guess-list { max-height: none; flex: 1 1 auto; overflow-y: auto; }
+  .sidebar .zoom, .sidebar .giveup { flex: none; }
+
+  .sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(8, 9, 12, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .sheet-backdrop[hidden] { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar { transition: none; }
+}
+
+/* Every pixel of the pinned bar is paid for on each scroll, so on narrow
+   screens the wordmark goes and the counters collapse to one compact line. */
+@media (max-width: 900px) {
+  .brand h1 { display: none; }
+}
+
+@media (max-width: 620px) {
+  .topbar { padding: 8px 14px; gap: 7px 10px; }
+  /* Two rows, not four: the controls ride alongside the guess box and only
+     the counters get a line of their own. */
+  .topbar .brand { order: 0; }
+  .topbar #guess-form { order: 1; flex: 1 1 140px; }
+  .topbar .topbar-meta { order: 2; }
+  .topbar .counters { order: 3; width: 100%; margin-left: 0; justify-content: space-between; gap: 8px; }
+  .counter { display: flex; align-items: baseline; gap: 5px; text-align: left; }
+  .counter span { font-size: 15px; }
+  #puzzle-label { display: none; }
+  .viewer { gap: 10px; }
+}

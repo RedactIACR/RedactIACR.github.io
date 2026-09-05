@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redact IACR — guess the cryptology paper</title>
+<meta name="description" content="A daily word game: uncover a redacted CRYPTO, EUROCRYPT or TCC paper one word at a time.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23111'/><rect x='3' y='6' width='10' height='4' rx='1' fill='%23e8e6e3'/></svg>">
+</head>
+<body>
+
+<!-- Header and guess bar stick together so a guess is always one keystroke
+     away, however far down the paper you have scrolled. -->
+<div class="sticky-head" id="sticky-head">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <h1>Redact<span class="brand-thin">IACR</span></h1>
+    </div>
+
+    <form id="guess-form" autocomplete="off">
+      <input id="guess-input" type="text" placeholder="Guess a word…" spellcheck="false"
+             autocapitalize="none" aria-label="Guess a word" disabled>
+      <button type="submit" id="guess-submit" disabled>Guess</button>
+    </form>
+
+    <div class="counters">
+      <div class="counter"><span id="stat-guesses">0</span><label>guesses</label></div>
+      <div class="counter"><span id="stat-hits">0</span><label>hits</label></div>
+      <div class="counter"><span id="stat-accuracy">—</span><label>accuracy</label></div>
+      <div class="counter"><span id="stat-revealed">0%</span><label>revealed</label></div>
+    </div>
+
+    <div class="topbar-meta">
+      <span id="puzzle-label" class="pill">loading…</span>
+      <!-- Opens the guesses as a bottom sheet on narrow screens, where the
+           sidebar would otherwise scroll out of reach. -->
+      <button id="btn-guesses" class="icon-btn guesses-btn" aria-expanded="false"
+              aria-controls="sidebar" title="Guesses" aria-label="Guesses">
+        <span class="guesses-icon"></span><span id="guesses-count">0</span>
+      </button>
+      <button id="btn-help" class="icon-btn" title="How to play" aria-label="How to play">?</button>
+      <button id="btn-stats" class="icon-btn" title="Statistics" aria-label="Statistics">▤</button>
+    </div>
+  </header>
+</div>
+
+<main>
+  <div class="layout">
+    <div id="viewer" class="viewer" aria-live="polite">
+      <div class="loading">Fetching today's paper…</div>
+    </div>
+
+    <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-head">
+        <h2>Guesses</h2>
+        <div class="sort-toggle">
+          <button data-sort="recent" class="active">recent</button>
+          <button data-sort="hits">hits</button>
+          <button data-sort="alpha">a–z</button>
+        </div>
+      </div>
+      <ol id="guess-list" class="guess-list"></ol>
+      <div class="zoom">
+        <button id="zoom-out" aria-label="Zoom out">−</button>
+        <span id="zoom-label">100%</span>
+        <button id="zoom-in" aria-label="Zoom in">+</button>
+      </div>
+      <button id="btn-giveup" class="giveup">Give up</button>
+    </aside>
+  </div>
+</main>
+
+<dialog id="dlg-confirm" class="result confirm">
+  <div class="result-ribbon"></div>
+  <div class="result-body">
+    <p id="confirm-kicker" class="result-kicker"></p>
+    <p id="confirm-text" class="confirm-text"></p>
+    <div class="result-actions">
+      <button id="confirm-yes" class="btn-primary"></button>
+      <button id="confirm-no" class="btn-ghost">Keep playing</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-result" class="result">
+  <div class="result-ribbon"></div>
+  <div class="result-body">
+    <p id="result-kicker" class="result-kicker"></p>
+
+    <h2 id="result-title" class="result-title"></h2>
+    <p id="result-authors" class="result-authors"></p>
+    <div id="result-tags" class="result-tags"></div>
+
+    <div id="result-stats" class="result-stats"></div>
+    <p id="result-note" class="result-note"></p>
+
+    <div class="result-actions">
+      <button id="result-copy" class="btn-primary">Copy result</button>
+      <a id="result-link" class="btn-ghost" target="_blank" rel="noopener">Read the paper ↗</a>
+      <button id="result-close" class="btn-ghost">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-help">
+  <h2>How to play</h2>
+  <p>Every day, one paper from <strong>CRYPTO</strong>, <strong>EUROCRYPT</strong> or
+     <strong>TCC</strong> is pulled from the Cryptology ePrint Archive and blacked out.</p>
+  <ul>
+    <li>Type a word to reveal <em>every</em> occurrence of it in the paper.</li>
+    <li>Matching is exact and case-insensitive. <code>proof</code> does not reveal
+        <code>proofs</code> — guess both.</li>
+    <li>Very common words and single letters are given to you for free.</li>
+    <li>Formulas are blacked out whole. Guess an identifier inside one —
+        <code>negl</code>, <code>poly</code>, <code>lambda</code> — to reveal it.
+        Pure notation like <span class="mono">ℓ, k, n</span> is never hidden.</li>
+    <li>You are reading the real paper, so figures, tables and the bibliography
+        are all there. Use the zoom controls if the type is small.</li>
+    <li>You win when every word of the <strong>title</strong> is revealed.</li>
+  </ul>
+  <p class="fineprint">Your progress is saved in this browser. A new paper appears at 00:00 UTC.</p>
+  <form method="dialog"><button>Got it</button></form>
+</dialog>
+
+<dialog id="dlg-stats">
+  <h2>Statistics</h2>
+  <div id="stats-body" class="stats-grid"></div>
+  <div id="stats-history" class="history"></div>
+  <form method="dialog"><button>Close</button></form>
+</dialog>
+
+<footer>
+  Papers &copy; their authors, from the
+  <a href="https://eprint.iacr.org">Cryptology ePrint Archive</a>.
+  Venue data from <a href="https://iacr.org/cryptodb/">CryptoDB</a>.
+  Inspired by <a href="https://redactle.net">Redactle</a>.
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
