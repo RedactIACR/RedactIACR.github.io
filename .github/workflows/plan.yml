@@ -47,6 +47,11 @@ jobs:
           restore-keys: iacr-cache-
 
       - name: Extend schedule.json
+        # Citation lookups run against Semantic Scholar's shared anonymous
+        # pool, which is slow. Setting a SEMANTIC_SCHOLAR_API_KEY secret (free
+        # to request) raises the limit; without one this still works.
+        env:
+          SEMANTIC_SCHOLAR_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
         run: |
           python -m build.main --plan \
             --days "${{ inputs.days }}" \

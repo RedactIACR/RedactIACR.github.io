@@ -37,10 +37,12 @@ const state = {
   pdf: null,
   views: [],             // one per page: { wrap, canvas, overlay, rendered, boxes }
   keyLookup: new Map(),  // guess word -> key id
+  stems: new Map(),      // stem -> key ids sharing it
   free: [],              // key id -> is it given away for free
   revealed: new Set(),   // key ids uncovered so far
   guesses: [],
   guessed: new Set(),
+  guessedStems: new Set(),
   won: false,
   gaveUp: false,
   startedAt: null,
@@ -64,6 +66,103 @@ const isFree = (word) => word.length < 2 || FREE_WORDS.has(word.toLowerCase());
 function normalise(text) {
   const tokens = String(text).toLowerCase().match(WORD_RE);
   return tokens && tokens.length ? tokens[0] : null;
+}
+
+/* ------------------------------------------------------------- stemming */
+
+/* Porter's step 1 only. That covers exactly the inflections a player expects
+ * to be the "same word" — plural, third person, past tense, gerund — while
+ * leaving derivational endings alone. Full Porter would also fold "general"
+ * into "gener" and "university" into "univers", merging words that mean
+ * different things and uncovering text the player never guessed. */
+
+function isConsonant(word, index) {
+  const letter = word[index];
+  if ('aeiou'.includes(letter)) return false;
+  if (letter !== 'y') return true;
+  return index === 0 ? true : !isConsonant(word, index - 1);
+}
+
+/* Porter's m: how many vowel-consonant sequences the stem contains. */
+function measure(word) {
+  let count = 0;
+  let i = 0;
+  while (i < word.length && isConsonant(word, i)) i += 1;
+  while (i < word.length) {
+    while (i < word.length && !isConsonant(word, i)) i += 1;
+    if (i >= word.length) break;
+    while (i < word.length && isConsonant(word, i)) i += 1;
+    count += 1;
+  }
+  return count;
+}
+
+const hasVowel = (word) => [...word].some((_, i) => !isConsonant(word, i));
+
+function endsDoubleConsonant(word) {
+  const n = word.length;
+  return n > 1 && word[n - 1] === word[n - 2] && isConsonant(word, n - 1);
+}
+
+/* Porter's *o: consonant-vowel-consonant, final one not w, x or y. */
+function endsCVC(word) {
+  const n = word.length;
+  if (n < 3) return false;
+  return isConsonant(word, n - 3) && !isConsonant(word, n - 2)
+    && isConsonant(word, n - 1) && !'wxy'.includes(word[n - 1]);
+}
+
+const stemCache = new Map();
+
+function stemWord(word) {
+  if (stemCache.has(word)) return stemCache.get(word);
+  const result = computeStem(word);
+  stemCache.set(word, result);
+  return result;
+}
+
+function computeStem(word) {
+  // Free words never merge with anything: "the" stems to "th", which in some
+  // papers is a real token, and guessing a word that was never hidden must
+  // not become a scoring hit.
+  if (isFree(word)) return word;
+  // Anything with a digit is an identifier or a number, not an English word.
+  if (word.length < 3 || /\d/.test(word)) return word;
+  let stem = word;
+
+  // Step 1a - plurals.
+  if (stem.endsWith('sses')) stem = stem.slice(0, -2);
+  else if (stem.endsWith('ies')) stem = stem.slice(0, -2);
+  else if (stem.endsWith('ss')) { /* keep */ }
+  else if (stem.endsWith('s')) stem = stem.slice(0, -1);
+
+  // Step 1b - past tense and gerund.
+  let restore = false;
+  if (stem.endsWith('eed')) {
+    if (measure(stem.slice(0, -3)) > 0) stem = stem.slice(0, -1);
+  } else if (stem.endsWith('ed') && hasVowel(stem.slice(0, -2))) {
+    stem = stem.slice(0, -2);
+    restore = true;
+  } else if (stem.endsWith('ing') && hasVowel(stem.slice(0, -3))) {
+    stem = stem.slice(0, -3);
+    restore = true;
+  }
+  if (restore) {
+    if (stem.endsWith('at') || stem.endsWith('bl') || stem.endsWith('iz')) stem += 'e';
+    else if (endsDoubleConsonant(stem) && !'lsz'.includes(stem[stem.length - 1])) {
+      stem = stem.slice(0, -1);
+    } else if (measure(stem) === 1 && endsCVC(stem)) stem += 'e';
+  }
+
+  // Step 1c - final y behaves as i, so "adversary" meets "adversaries".
+  if (stem.endsWith('y') && hasVowel(stem.slice(0, -1))) stem = `${stem.slice(0, -1)}i`;
+
+  // Silent e is where Porter's step 1 is inconsistent: it strips it from
+  // "assumed" but keeps it on "assume", and leaves "hashes" as "hashe".
+  // Dropping a final e from the stem reconciles both.
+  if (stem.length > 2 && stem.endsWith('e')) stem = stem.slice(0, -1);
+
+  return stem;
 }
 
 /* ------------------------------------------------------------- persistence */
@@ -299,30 +398,41 @@ function rescale() {
 
 /* ------------------------------------------------------------------ guess */
 
-/* How many still-hidden boxes this key would uncover. */
-function countHits(key) {
+/* Every key in the paper that is an inflection of this word. */
+function keysFor(word) {
+  const group = state.stems.get(stemWord(word));
+  if (!group) return [];
+  return group.filter((key) => !state.revealed.has(key));
+}
+
+/* How many still-hidden boxes these keys would uncover. */
+function countHits(keys) {
+  const pending = new Set(keys);
+  if (!pending.size) return 0;
+
   let hits = 0;
   for (const page of state.puzzle.pages) {
-    // Words handed over for free were never covered, so uncovering them is
-    // not a hit — counting them would inflate both accuracy and progress.
-    if (!state.free[key]) {
-      for (const box of page.words) if (box[4] === key) hits += 1;
+    for (const box of page.words) {
+      // Words handed over for free were never covered, so uncovering them is
+      // not a hit — counting them would inflate both accuracy and progress.
+      if (pending.has(box[4]) && !state.free[box[4]]) hits += 1;
     }
     for (const box of page.math) {
-      // A formula already uncovered by one of its other identifiers must not
-      // be counted a second time.
-      if (box[4].includes(key) && !box[4].some((k) => k !== key && state.revealed.has(k))) hits += 1;
+      // A formula already uncovered by another of its identifiers, or counted
+      // once for this same guess, must not be counted twice.
+      if (box[4].some((k) => state.revealed.has(k))) continue;
+      if (box[4].some((k) => pending.has(k))) hits += 1;
     }
   }
   return hits;
 }
 
 function applyGuess(word, { flash = true } = {}) {
-  const key = state.keyLookup.get(word);
-  if (key === undefined || state.revealed.has(key)) return 0;
+  const keys = keysFor(word);
+  if (!keys.length) return 0;
 
-  const hits = countHits(key);
-  state.revealed.add(key);
+  const hits = countHits(keys);
+  for (const key of keys) state.revealed.add(key);
   state.revealedBoxes += hits;
   clearRevealedBoxes({ flash });
   return hits;
@@ -332,7 +442,9 @@ function submitGuess(raw) {
   const word = normalise(raw);
   if (!word || state.won || state.gaveUp) return;
 
-  if (state.guessed.has(word)) {
+  // Inflections count as the same guess: "encrypts" after "encrypt" is a
+  // repeat, not a new attempt.
+  if (state.guessedStems.has(stemWord(word))) {
     focusOn(word);
     flashInput();
     return;
@@ -340,8 +452,7 @@ function submitGuess(raw) {
 
   // A word shown for free is already on the page, so it is not a guess at
   // all: recording it would either flatter accuracy or punish it unfairly.
-  const known = state.keyLookup.get(word);
-  if (isFree(word) && (known === undefined || countHits(known) === 0)) {
+  if (isFree(word) && countHits(keysFor(word)) === 0) {
     flashInput();
     return;
   }
@@ -349,6 +460,7 @@ function submitGuess(raw) {
   // The clock starts at the first guess, so leaving a tab open does not count.
   state.startedAt ??= Date.now();
   state.guessed.add(word);
+  state.guessedStems.add(stemWord(word));
   const hits = applyGuess(word);
   state.guesses.push({ word, hits });
   state.focus = { word: hits ? word : null, index: 0 };
@@ -361,7 +473,7 @@ function submitGuess(raw) {
 
 function checkWin() {
   const remaining = state.puzzle.titleWords.filter(
-    (word) => !isFree(word) && !state.guessed.has(word),
+    (word) => !isFree(word) && !state.guessedStems.has(stemWord(word)),
   );
   if (remaining.length) return;
   state.won = true;
@@ -405,13 +517,14 @@ function finish({ announce = true } = {}) {
 /* ------------------------------------------------------- focus navigation */
 
 function focusOn(word) {
-  const key = state.keyLookup.get(word);
-  if (key === undefined) return;
+  const group = state.stems.get(stemWord(word));
+  if (!group || !group.length) return;
+  const keys = new Set(group);
 
   const spots = [];
   state.puzzle.pages.forEach((page, index) => {
-    for (const box of page.words) if (box[4] === key) spots.push({ index, box });
-    for (const box of page.math) if (box[4].includes(key)) spots.push({ index, box });
+    for (const box of page.words) if (keys.has(box[4])) spots.push({ index, box });
+    for (const box of page.math) if (box[4].some((k) => keys.has(k))) spots.push({ index, box });
   });
   if (!spots.length) return;
 
@@ -545,12 +658,16 @@ function showResult() {
 
   const tags = $('result-tags');
   tags.textContent = '';
-  for (const [text, className] of [
+  const tagList = [
     [puzzle.venue, 'venue'],
     [String(puzzle.year), ''],
     [`${puzzle.stats.pages} pages`, ''],
     [`${puzzle.stats.words.toLocaleString()} words`, ''],
-  ]) {
+  ];
+  if (typeof puzzle.citations === 'number') {
+    tagList.push([`${puzzle.citations.toLocaleString()} citations`, '']);
+  }
+  for (const [text, className] of tagList) {
     const tag = document.createElement('span');
     tag.className = className;
     tag.textContent = text;
@@ -826,7 +943,12 @@ async function boot() {
   state.puzzle = puzzle;
 
   state.free = puzzle.keys.map(isFree);
-  puzzle.keys.forEach((key, id) => state.keyLookup.set(key, id));
+  puzzle.keys.forEach((key, id) => {
+    state.keyLookup.set(key, id);
+    const stem = stemWord(key);
+    if (!state.stems.has(stem)) state.stems.set(stem, []);
+    state.stems.get(stem).push(id);
+  });
   state.totalBoxes = puzzle.pages.reduce(
     (sum, page) => sum + page.words.filter((b) => !state.free[b[4]]).length + page.math.length,
     0,
@@ -844,14 +966,16 @@ async function boot() {
   const dayNumber = index.epoch
     ? dayGap(index.epoch, today) + 1
     : index.dates.indexOf(today) + 1;
+  // The puzzle number stays in the header pill only; the tab title is left as
+  // the static one from index.html.
   $('puzzle-label').textContent = `#${dayNumber} · ${today}`;
-  document.title = `Redact IACR #${dayNumber}`;
 
   const saved = loadDay(today);
   if (saved) {
     state.guesses = saved.guesses || [];
     for (const guess of state.guesses) {
       state.guessed.add(guess.word);
+      state.guessedStems.add(stemWord(guess.word));
       applyGuess(guess.word, { flash: false });
     }
     state.won = !!saved.won;

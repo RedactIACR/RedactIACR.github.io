@@ -70,6 +70,7 @@ joins them:
 | --- | --- | --- |
 | [CryptoDB](https://iacr.org/cryptodb/) | which papers appeared at CRYPTO / EUROCRYPT / TCC | ePrint identifiers |
 | [ePrint OAI-PMH](https://eprint.iacr.org/oai) | every ePrint id, title, authors, abstract | publication venue |
+| [Semantic Scholar](https://www.semanticscholar.org/product/api) | citation counts | everything else |
 
 They share no identifier, so `build/corpus.py` joins them on a normalised
 title. That yields roughly **3,300 papers** that both appeared at one of the
@@ -79,6 +80,35 @@ one paper per day.
 Only the scheduled papers' PDFs are downloaded — about 100 per build, not the
 whole archive. Metadata harvests and PDFs are cached under `cache/`, so
 re-running the build is cheap.
+
+### Only well-cited papers
+
+A paper needs **at least 50 citations** to be scheduled (`--min-citations`, 0
+disables). Counts come from Semantic Scholar, matched on the title, and are cached in
+`cache/citations.json`.
+
+Not OpenAlex: it moved to a credit model whose anonymous allowance works out
+at a hundred lookups a day, which does not cover even one planning run.
+Semantic Scholar's free tier is roughly 100 requests per five minutes — slow
+but sufficient — and setting `SEMANTIC_SCHOLAR_API_KEY` raises it.
+
+Two distinctions in [`build/citations.py`](build/citations.py) matter. A paper
+the graph does not know is recorded as `None`, not zero, and the scheduler
+treats unknown as ineligible, since an unverifiable count cannot be shown to
+clear the bar. A lookup that could not be *completed* raises instead, and is
+never cached: recording a throttled request as `None` would bar a paper from
+the schedule permanently on the strength of a transient failure.
+
+`/search/match` returns its single best guess, which for a short or generic
+title can be a different paper, so an exact title match is required.
+
+About a third of the corpus clears 50, which is roughly a thousand papers, or
+three years of daily puzzles. The filter skews the game old: recent work has
+not had time to accumulate citations, so papers from the last two or three
+years rarely qualify.
+
+Because most candidates are rejected, planning walks the whole shuffled pool
+and looks up citations lazily, only for the candidates it actually considers.
 
 ## How papers are redacted
 
@@ -116,6 +146,15 @@ A few decisions worth knowing about:
   cover their glyphs once the client scales them up.
 - **No text layer is rendered**, deliberately — one would put the answer in the
   DOM for Ctrl+F to find.
+- **A guess matches the word's inflections.** `require` uncovers *requires*,
+  *required* and *requiring*, and counts them as one guess. The client groups
+  the paper's vocabulary by stem at load, using **Porter's step 1 only** —
+  plural, third person, past tense, gerund. Full Porter would also fold
+  `general` into `gener` and `university` into `univers`, merging words that
+  mean different things and uncovering text the player never guessed. One
+  addition to Porter: a trailing `e` is dropped from the stem, since step 1 is
+  otherwise inconsistent about silent `e` (it strips it from *assumed* but
+  keeps it on *assume*, and leaves *hashes* as `hashe`).
 
 ## Puzzle files
 

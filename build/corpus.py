@@ -76,6 +76,21 @@ def join_venues(cryptodb: list[dict], eprint: list[dict]) -> list[dict]:
     return sorted(joined.values(), key=lambda rec: rec["id"])
 
 
+def shuffled_pool(
+    papers: list[dict], seed: int, exclude_ids: set[str] | None = None
+) -> list[dict]:
+    """Every eligible paper, in a deterministic order for a given seed.
+
+    The caller walks this and takes what it can use. Filters that need the
+    network (citation counts) or the PDF itself are applied during the walk,
+    so only the candidates actually considered get looked up.
+    """
+    pool = [p for p in papers if p["id"] not in (exclude_ids or set())]
+    rng = random.Random(seed)
+    rng.shuffle(pool)
+    return pool
+
+
 def build_schedule(
     papers: list[dict],
     start: dt.date,

@@ -25,7 +25,8 @@ import time
 from pathlib import Path
 
 from .boxes import ExtractionError, extract_boxes, pack_pages, word_tokens
-from .corpus import build_schedule, join_venues
+from .citations import Citations, LookupFailed
+from .corpus import join_venues, shuffled_pool
 from .harvest import _fetch, harvest_cryptodb, harvest_eprint
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -68,6 +69,7 @@ def build_puzzle(date: str, paper: dict) -> dict:
         "titleText": paper["title"],
         "titleWords": word_tokens(paper["title"]),
         "authorsText": paper["authors"],
+        "citations": paper.get("citations"),
         "keys": keys,
         "pages": pages,
         "stats": {
@@ -117,15 +119,37 @@ def plan(args) -> None:
         print(f"schedule already covers {args.days} days from {start}")
         return
 
-    # Draw enough for the unfilled days plus replacements for unusable PDFs.
-    draw = build_schedule(papers, start, min(len(wanted) + 60, len(papers)), args.seed, taken)
-    queue = [paper for _, paper in draw]
+    # Walk the whole shuffled pool: the citation filter rejects most papers,
+    # so a small fixed draw would run dry.
+    queue = shuffled_pool(papers, args.seed, taken)
+    citations = Citations(CACHE)
     print(f"planning {len(wanted)} new days ({wanted[0]} .. {wanted[-1]})")
+    if args.min_citations:
+        print(f"  requiring at least {args.min_citations} citations (Semantic Scholar)")
 
-    added = 0
+    added, thin, unknown = 0, 0, 0
     for iso in wanted:
         while queue:
             paper = queue.pop(0)
+
+            try:
+                cited = citations.get(paper["title"]) if args.min_citations else 0
+            except LookupFailed as exc:
+                # Guessing here would silently exclude good papers, so stop and
+                # keep what has been decided so far.
+                citations.save()
+                save_lock(lock)
+                raise SystemExit(f"citation lookup failed: {exc}\nRe-run to resume.")
+            if args.min_citations:
+                if cited is None:
+                    # Unknown is not the same as zero, but an unverifiable
+                    # count cannot be said to clear the bar.
+                    unknown += 1
+                    continue
+                if cited < args.min_citations:
+                    thin += 1
+                    continue
+
             try:
                 # Building it here is the point: a day only enters the
                 # schedule once its PDF is proven to extract.
@@ -136,12 +160,21 @@ def plan(args) -> None:
             lock["days"][iso] = {
                 "id": paper["id"], "venue": paper["venue"], "year": paper["year"],
                 "title": paper["title"], "authors": paper["authors"],
+                "citations": cited,
             }
-            print(f"  {iso}  {paper['venue']} {paper['year']}  {paper['id']}")
+            print(f"  {iso}  {paper['venue']} {paper['year']}  {paper['id']}  {cited} cites")
             added += 1
             break
         else:
-            raise SystemExit(f"ran out of usable papers at {iso}")
+            raise SystemExit(
+                f"ran out of usable papers at {iso} "
+                f"(rejected {thin} under-cited, {unknown} unknown to Semantic Scholar)"
+            )
+
+    citations.save()
+    if args.min_citations:
+        print(f"  rejected {thin} papers under {args.min_citations} citations, "
+              f"{unknown} not found in Semantic Scholar")
 
     lock["seed"] = args.seed
     lock["generated"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
@@ -197,9 +230,12 @@ def build(args) -> None:
 
     built = 0
     for iso in wanted:
-        if (OUT / f"{iso}.json").exists() and (OUT / "pdf" / f"{iso}.pdf").exists() and not args.force:
-            continue
         paper = lock["days"][iso]
+        # Re-use an existing file only if it is the paper now scheduled: a
+        # re-plan can reassign a day, and testing for mere existence would
+        # leave yesterday's paper published under today's date.
+        if not args.force and _built_id(iso) == paper["id"] and (OUT / "pdf" / f"{iso}.pdf").exists():
+            continue
         puzzle = build_puzzle(iso, paper)
         (OUT / f"{iso}.json").write_text(
             json.dumps(puzzle, ensure_ascii=False, separators=(",", ":")),
@@ -233,6 +269,17 @@ def build(args) -> None:
     print(f"\nbuilt {built} new puzzles; site now serves {len(dates)} days ({dates[0]} .. {dates[-1]})")
 
 
+def _built_id(iso: str) -> str | None:
+    """The ePrint id of an already-built puzzle file, if it is readable."""
+    path = OUT / f"{iso}.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))["id"]
+    except Exception:  # noqa: BLE001 - a corrupt file just gets rebuilt
+        return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -242,6 +289,8 @@ def main() -> None:
     parser.add_argument("--start", default="", help="first day to plan (--plan, default: today UTC)")
     parser.add_argument("--seed", type=int, default=20260901, help="schedule shuffle seed (--plan)")
     parser.add_argument("--refresh", action="store_true", help="re-harvest IACR metadata (--plan)")
+    parser.add_argument("--min-citations", type=int, default=50,
+                        help="skip papers cited fewer times than this (--plan; 0 disables)")
     parser.add_argument("--back", type=int, default=2, help="days before today to keep serving")
     parser.add_argument("--horizon", type=int, default=21, help="days ahead to build")
     parser.add_argument("--today", default="", help="override today's date (testing)")

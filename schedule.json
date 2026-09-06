@@ -71,74 +71,6 @@
     "Daniel Wichs"
    ]
   },
-  "2026-09-08": {
-   "id": "2022/244",
-   "venue": "EUROCRYPT",
-   "year": 2022,
-   "title": "Universally Composable Subversion-Resilient Cryptography",
-   "authors": [
-    "Suvradip Chakraborty",
-    "Bernardo Magri",
-    "Jesper Buus Nielsen",
-    "Daniele Venturi"
-   ]
-  },
-  "2026-09-09": {
-   "id": "2025/508",
-   "venue": "CRYPTO",
-   "year": 2025,
-   "title": "Towards Building Scalable Constant-Round MPC from Minimal Assumptions via Round Collapsing",
-   "authors": [
-    "Vipul Goyal",
-    "Junru Li",
-    "Rafail Ostrovsky",
-    "Yifan Song"
-   ]
-  },
-  "2026-09-10": {
-   "id": "2016/128",
-   "venue": "EUROCRYPT",
-   "year": 2017,
-   "title": "Removing the Strong RSA Assumption from Arguments over the Integers",
-   "authors": [
-    "Geoffroy Couteau",
-    "Thomas Peters",
-    "David Pointcheval"
-   ]
-  },
-  "2026-09-11": {
-   "id": "2021/241",
-   "venue": "TCC",
-   "year": 2023,
-   "title": "On the Round Complexity of Fully Secure Solitary MPC with Honest Majority",
-   "authors": [
-    "Saikrishna Badrinarayanan",
-    "Peihan Miao",
-    "Pratyay Mukherjee",
-    "Divya Ravi"
-   ]
-  },
-  "2026-09-12": {
-   "id": "2012/404",
-   "venue": "CRYPTO",
-   "year": 2012,
-   "title": "Secret Sharing Schemes for Very Dense Graphs",
-   "authors": [
-    "Amos Beimel",
-    "Oriol Farràs",
-    "Yuval Mintz"
-   ]
-  },
-  "2026-09-13": {
-   "id": "2022/832",
-   "venue": "CRYPTO",
-   "year": 2022,
-   "title": "Sustained Space and Cumulative Complexity Trade-offs for Data-Dependent Memory-Hard Functions",
-   "authors": [
-    "Jeremiah Blocki",
-    "Blake Holman"
-   ]
-  },
   "2026-09-14": {
    "id": "2017/078",
    "venue": "CRYPTO",
@@ -148,27 +80,6 @@
     "Andre Esser",
     "Robert Kübler",
     "Alexander May"
-   ]
-  },
-  "2026-09-15": {
-   "id": "2025/2160",
-   "venue": "CRYPTO",
-   "year": 2026,
-   "title": "Pairing-Based SNARGs with Two Group Elements",
-   "authors": [
-    "Gal Arnon",
-    "Jesko Dujmovic",
-    "Eylon Yogev"
-   ]
-  },
-  "2026-09-16": {
-   "id": "2021/258",
-   "venue": "CRYPTO",
-   "year": 2021,
-   "title": "Secure Wire Shuffling in the Probing Model",
-   "authors": [
-    "Jean-Sebastien Coron",
-    "Lorenzo Spignoli"
    ]
   },
   "2026-09-17": {
@@ -189,47 +100,6 @@
    "authors": [
     "Daniele Micciancio",
     "Petros Mol"
-   ]
-  },
-  "2026-09-19": {
-   "id": "2020/663",
-   "venue": "TCC",
-   "year": 2020,
-   "title": "Super-Linear Time-Memory Trade-Offs for Symmetric Encryption",
-   "authors": [
-    "Wei Dai",
-    "Stefano Tessaro",
-    "Xihu Zhang"
-   ]
-  },
-  "2026-09-20": {
-   "id": "2024/1845",
-   "venue": "EUROCRYPT",
-   "year": 2025,
-   "title": "Single-Server Client Preprocessing PIR with Tight Space-Time Trade-oﬀ",
-   "authors": [
-    "Zhikun Wang",
-    "Ling Ren"
-   ]
-  },
-  "2026-09-21": {
-   "id": "2025/536",
-   "venue": "TCC",
-   "year": 2025,
-   "title": "A Fiat–Shamir Transformation From Duplex Sponges",
-   "authors": [
-    "Alessandro Chiesa",
-    "Michele Orrù"
-   ]
-  },
-  "2026-09-22": {
-   "id": "2023/573",
-   "venue": "CRYPTO",
-   "year": 2024,
-   "title": "HyperNova: Recursive arguments for customizable constraint systems",
-   "authors": [
-    "Abhiram Kothapalli",
-    "Srinath Setty"
    ]
   },
   "2026-09-23": {
@@ -271,17 +141,6 @@
     "Sanjam Garg"
    ]
   },
-  "2026-09-27": {
-   "id": "2019/251",
-   "venue": "EUROCRYPT",
-   "year": 2019,
-   "title": "Consensus through Herding",
-   "authors": [
-    "T-H.  Hubert Chan",
-    "Rafael Pass",
-    "Elaine Shi"
-   ]
-  },
   "2026-09-28": {
    "id": "2010/563",
    "venue": "CRYPTO",
@@ -290,68 +149,6 @@
    "authors": [
     "Tatsuaki Okamoto",
     "Katsuyuki Takashima"
-   ]
-  },
-  "2026-09-29": {
-   "id": "2019/552",
-   "venue": "CRYPTO",
-   "year": 2019,
-   "title": "Continuous Space-Bounded Non-Malleable Codes from Stronger Proofs-of-Space",
-   "authors": [
-    "Binyi Chen",
-    "Yilei Chen",
-    "Kristina Hostáková",
-    "Pratyay Mukherjee"
-   ]
-  },
-  "2026-09-30": {
-   "id": "2024/242",
-   "venue": "TCC",
-   "year": 2024,
-   "title": "Perfectly-Secure MPC with Constant Online Communication Complexity",
-   "authors": [
-    "Yifan Song",
-    "Xiaxi Ye"
-   ]
-  },
-  "2026-10-01": {
-   "id": "2019/221",
-   "venue": "EUROCRYPT",
-   "year": 2019,
-   "title": "Group Signatures without NIZK: From Lattices in the Standard Model",
-   "authors": [
-    "Shuichi Katsumata",
-    "Shota Yamada"
-   ]
-  },
-  "2026-10-02": {
-   "id": "2022/262",
-   "venue": "EUROCRYPT",
-   "year": 2022,
-   "title": "Secure Non-Interactive Reduction and Spectral Analysis of Correlations",
-   "authors": [
-    "Pratyush Agarwal",
-    "Varun Narayanan",
-    "Shreya Pathak",
-    "Manoj Prabhakaran",
-    "Vinod M.  Prabhakaran",
-    "Mohammad Ali Rehan"
-   ]
-  },
-  "2026-10-03": {
-   "id": "2022/658",
-   "venue": "EUROCRYPT",
-   "year": 2022,
-   "title": "Unclonable Polymers and Their Cryptographic Applications",
-   "authors": [
-    "Ghada Almashaqbeh",
-    "Ran Canetti",
-    "Yaniv Erlich",
-    "Jonathan Gershoni",
-    "Tal Malkin",
-    "Itsik Pe’er",
-    "Anna Roitburd-Berman",
-    "Eran Tromer"
    ]
   },
   "2026-10-04": {
@@ -374,111 +171,6 @@
     "Yehuda Lindell"
    ]
   },
-  "2026-10-06": {
-   "id": "2021/918",
-   "venue": "TCC",
-   "year": 2021,
-   "title": "The Round Complexity of Quantum Zero-Knowledge",
-   "authors": [
-    "Orestis Chardouvelis",
-    "Giulio Malavolta"
-   ]
-  },
-  "2026-10-07": {
-   "id": "2009/177",
-   "venue": "EUROCRYPT",
-   "year": 2009,
-   "title": "Salvaging Merkle-Damgard for Practical Applications",
-   "authors": [
-    "Yevgeniy Dodis",
-    "Thomas Ristenpart",
-    "Thomas Shrimpton"
-   ]
-  },
-  "2026-10-08": {
-   "id": "2021/1025",
-   "venue": "CRYPTO",
-   "year": 2021,
-   "title": "Efficient Information-Theoretic Multi-Party Computation over Non-Commutative Rings",
-   "authors": [
-    "Daniel Escudero",
-    "Eduardo Soria-Vazquez"
-   ]
-  },
-  "2026-10-09": {
-   "id": "2025/2282",
-   "venue": "EUROCRYPT",
-   "year": 2026,
-   "title": "When Simple Permutations Mix Poorly: Limited Independence Does Not Imply Pseudorandomness",
-   "authors": [
-    "Jesko Dujmovic",
-    "Angelos Pelecanos",
-    "Stefano Tessaro"
-   ]
-  },
-  "2026-10-10": {
-   "id": "2017/942",
-   "venue": "TCC",
-   "year": 2017,
-   "title": "On Secure Two-Party Computation in Three Rounds",
-   "authors": [
-    "Prabhanjan Ananth",
-    "Abhishek Jain"
-   ]
-  },
-  "2026-10-11": {
-   "id": "2013/811",
-   "venue": "TCC",
-   "year": 2014,
-   "title": "Constant-Round Black-Box Construction of Composable Multi-Party Computation Protocol",
-   "authors": [
-    "Susumu Kiyoshima",
-    "Yoshifumi Manabe",
-    "Tatsuaki Okamoto"
-   ]
-  },
-  "2026-10-12": {
-   "id": "2009/249",
-   "venue": "EUROCRYPT",
-   "year": 2019,
-   "title": "Symbolic Encryption with Pseudorandom Keys",
-   "authors": [
-    "Daniele Micciancio"
-   ]
-  },
-  "2026-10-13": {
-   "id": "2022/773",
-   "venue": "TCC",
-   "year": 2022,
-   "title": "Adaptive versus Static Multi-oracle Algorithms, and Quantum Security of a Split-key PRF",
-   "authors": [
-    "Jelle Don",
-    "Serge Fehr",
-    "Yu-Hsuan Huang"
-   ]
-  },
-  "2026-10-14": {
-   "id": "2017/1191",
-   "venue": "CRYPTO",
-   "year": 2015,
-   "title": "Data Is a Stream: Security of Stream-Based Channels",
-   "authors": [
-    "Marc Fischlin",
-    "Felix Günther",
-    "Giorgia Azzurra Marson",
-    "Kenneth G.  Paterson"
-   ]
-  },
-  "2026-10-15": {
-   "id": "2025/1080",
-   "venue": "EUROCRYPT",
-   "year": 2026,
-   "title": "Leftover Hash Lemma(s) Over Cyclotomic Rings",
-   "authors": [
-    "Katharina Boudgoust",
-    "Oleksandra Lapiha"
-   ]
-  },
   "2026-10-16": {
    "id": "2013/307",
    "venue": "CRYPTO",
@@ -490,40 +182,6 @@
     "Beni Paskin-Cherniavsky"
    ]
   },
-  "2026-10-17": {
-   "id": "2023/250",
-   "venue": "EUROCRYPT",
-   "year": 2023,
-   "title": "A Lower Bound on the Length of Signatures Based on Group Actions and Generic Isogenies",
-   "authors": [
-    "Dan Boneh",
-    "Jiaxin Guan",
-    "Mark Zhandry"
-   ]
-  },
-  "2026-10-18": {
-   "id": "2024/300",
-   "venue": "EUROCRYPT",
-   "year": 2024,
-   "title": "Diving Deep into the Preimage Security of AES-like Hashing",
-   "authors": [
-    "Shiyao Chen",
-    "Jian Guo",
-    "Eik List",
-    "Danping Shi",
-    "Tianyu Zhang"
-   ]
-  },
-  "2026-10-19": {
-   "id": "2025/320",
-   "venue": "EUROCRYPT",
-   "year": 2025,
-   "title": "Committing Authenticated Encryption: Generic Transforms with Hash Functions",
-   "authors": [
-    "Shan Chen",
-    "Vukašin Karadžić"
-   ]
-  },
   "2026-10-20": {
    "id": "2012/461",
    "venue": "CRYPTO",
@@ -532,16 +190,6 @@
    "authors": [
     "Nir Bitansky",
     "Alessandro Chiesa"
-   ]
-  },
-  "2026-10-21": {
-   "id": "2015/703",
-   "venue": "TCC",
-   "year": 2016,
-   "title": "Point-Function Obfuscation: A Framework and Generic Constructions",
-   "authors": [
-    "Mihir Bellare",
-    "Igors Stepanovs"
    ]
   },
   "2026-10-22": {
@@ -563,60 +211,6 @@
    "authors": [
     "Dan Boneh",
     "Xavier Boyen"
-   ]
-  },
-  "2026-10-24": {
-   "id": "2018/364",
-   "venue": "TCC",
-   "year": 2018,
-   "title": "Perfectly Secure Oblivious Parallel RAM",
-   "authors": [
-    "T-H.  Hubert Chan",
-    "Kartik Nayak",
-    "Elaine Shi"
-   ]
-  },
-  "2026-10-25": {
-   "id": "2023/083",
-   "venue": "CRYPTO",
-   "year": 2023,
-   "title": "MacORAMa: Optimal Oblivious RAM with Integrity",
-   "authors": [
-    "Surya Mathialagan",
-    "Neekon Vafa"
-   ]
-  },
-  "2026-10-26": {
-   "id": "2025/2076",
-   "venue": "EUROCRYPT",
-   "year": 2025,
-   "title": "Non-Interactive Blind Signatures from RSA Assumption and More",
-   "authors": [
-    "Lucjan Hanzlik",
-    "Eugenio Paracucchi",
-    "Riccardo Zanotto"
-   ]
-  },
-  "2026-10-27": {
-   "id": "2024/2076",
-   "venue": "CRYPTO",
-   "year": 2025,
-   "title": "Blind Signatures from Proofs of Inequality",
-   "authors": [
-    "Michael Klooß",
-    "Michael Reichle"
-   ]
-  },
-  "2026-10-28": {
-   "id": "2020/768",
-   "venue": "TCC",
-   "year": 2020,
-   "title": "Perfect Zero Knowledge: New Upperbounds and Relativized Separations",
-   "authors": [
-    "Peter Dixon",
-    "Sutanu Gayen",
-    "A.  Pavan",
-    "N.  V.  Vinodchandran"
    ]
   },
   "2026-10-29": {
@@ -650,28 +244,6 @@
     "Vipul Goyal"
    ]
   },
-  "2026-11-01": {
-   "id": "2023/204",
-   "venue": "CRYPTO",
-   "year": 2023,
-   "title": "TreePIR: Sublinear-Time and Polylog-Bandwidth Private Information Retrieval from DDH",
-   "authors": [
-    "Arthur Lazzaretti",
-    "Charalampos Papamanthou"
-   ]
-  },
-  "2026-11-02": {
-   "id": "2015/772",
-   "venue": "TCC",
-   "year": 2016,
-   "title": "Non-Malleable Encryption: Simpler, Shorter, Stronger",
-   "authors": [
-    "Sandro Coretti",
-    "Yevgeniy Dodis",
-    "Björn Tackmann",
-    "Daniele Venturi"
-   ]
-  },
   "2026-11-03": {
    "id": "2018/161",
    "venue": "EUROCRYPT",
@@ -697,61 +269,6 @@
     "Chen Yuan"
    ]
   },
-  "2026-11-05": {
-   "id": "2020/1157",
-   "venue": "TCC",
-   "year": 2020,
-   "title": "Secure Massively Parallel Computation for Dishonest Majority",
-   "authors": [
-    "Rex Fernando",
-    "Ilan Komargodski",
-    "Yanyi Liu",
-    "Elaine Shi"
-   ]
-  },
-  "2026-11-06": {
-   "id": "2023/823",
-   "venue": "CRYPTO",
-   "year": 2023,
-   "title": "Lattice-based Authenticated Key Exchange with Tight Security",
-   "authors": [
-    "Jiaxin Pan",
-    "Benedikt Wagner",
-    "Runzhi Zeng"
-   ]
-  },
-  "2026-11-07": {
-   "id": "2020/617",
-   "venue": "TCC",
-   "year": 2020,
-   "title": "New Techniques in Replica Encodings with Client Setup",
-   "authors": [
-    "Rachit Garg",
-    "George Lu",
-    "Brent Waters"
-   ]
-  },
-  "2026-11-08": {
-   "id": "2023/1087",
-   "venue": "CRYPTO",
-   "year": 2023,
-   "title": "Moving a Step of ChaCha in Syncopated Rhythm",
-   "authors": [
-    "Shichang Wang",
-    "Meicheng Liu",
-    "Shiqi Hou",
-    "Dongdai Lin"
-   ]
-  },
-  "2026-11-09": {
-   "id": "2025/1072",
-   "venue": "CRYPTO",
-   "year": 2025,
-   "title": "How to Model Unitary Oracles",
-   "authors": [
-    "Mark Zhandry"
-   ]
-  },
   "2026-11-10": {
    "id": "2012/078",
    "venue": "CRYPTO",
@@ -761,15 +278,6 @@
     "Zvika Brakerski"
    ]
   },
-  "2026-11-11": {
-   "id": "2020/1420",
-   "venue": "TCC",
-   "year": 2020,
-   "title": "Functional Encryption for Quadratic Functions from k-Lin, Revisited",
-   "authors": [
-    "Hoeteck Wee"
-   ]
-  },
   "2026-11-12": {
    "id": "2021/578",
    "venue": "EUROCRYPT",
@@ -777,93 +285,6 @@
    "title": "Cryptanalytic Applications of the Polynomial Method for Solving Multivariate Equation Systems over GF(2)",
    "authors": [
     "Itai Dinur"
-   ]
-  },
-  "2026-11-13": {
-   "id": "2026/318",
-   "venue": "EUROCRYPT",
-   "year": 2026,
-   "title": "Distributed Monotone-Policy Encryption for DNFs from Lattices",
-   "authors": [
-    "Jeffrey Champion",
-    "David J. Wu"
-   ]
-  },
-  "2026-11-14": {
-   "id": "2021/927",
-   "venue": "CRYPTO",
-   "year": 2021,
-   "title": "A New Simple Technique to Bootstrap Various Lattice Zero-Knowledge Proofs to QROM Secure NIZKs",
-   "authors": [
-    "Shuichi Katsumata"
-   ]
-  },
-  "2026-11-15": {
-   "id": "2022/785",
-   "venue": "CRYPTO",
-   "year": 2022,
-   "title": "Shorter Hash-and-Sign Lattice-Based Signatures",
-   "authors": [
-    "Thomas Espitau",
-    "Mehdi Tibouchi",
-    "Alexandre Wallet",
-    "Yang Yu"
-   ]
-  },
-  "2026-11-16": {
-   "id": "2025/1676",
-   "venue": "TCC",
-   "year": 2025,
-   "title": "Honest Majority Constant-Round MPC with Linear  Communication from One-Way Functions",
-   "authors": [
-    "Junru Li",
-    "Yifan Song"
-   ]
-  },
-  "2026-11-17": {
-   "id": "2025/852",
-   "venue": "EUROCRYPT",
-   "year": 2026,
-   "title": "Neural-Inspired Advances in Integral Cryptanalysis",
-   "authors": [
-    "Liu Zhang",
-    "Yiran Yao",
-    "Danping Shi",
-    "Dongchen Chai",
-    "Jian Guo",
-    "Zilong Wang"
-   ]
-  },
-  "2026-11-18": {
-   "id": "2009/520",
-   "venue": "CRYPTO",
-   "year": 2010,
-   "title": "Universally Composable Incoercibility",
-   "authors": [
-    "Dominique Unruh",
-    "Jörn Müller-Quade"
-   ]
-  },
-  "2026-11-19": {
-   "id": "2024/993",
-   "venue": "CRYPTO",
-   "year": 2024,
-   "title": "Limits on the Power of Prime-Order Groups: Separating Q-Type from Static Assumptions",
-   "authors": [
-    "George Lu",
-    "Mark Zhandry"
-   ]
-  },
-  "2026-11-20": {
-   "id": "2025/1784",
-   "venue": "CRYPTO",
-   "year": 2025,
-   "title": "Pseudorandom Unitaries in the Haar Random Oracle Model",
-   "authors": [
-    "Prabhanjan Ananth",
-    "John Bostanci",
-    "Aditya Gulati",
-    "Yao-Ting Lin"
    ]
   },
   "2026-11-21": {
@@ -876,41 +297,6 @@
     "Dominique Unruh"
    ]
   },
-  "2026-11-22": {
-   "id": "2025/451",
-   "venue": "EUROCRYPT",
-   "year": 2025,
-   "title": "Analysis of the Telegram Key Exchange",
-   "authors": [
-    "Martin R. Albrecht",
-    "Lenka Mareková",
-    "Kenneth G. Paterson",
-    "Eyal Ronen",
-    "Igors Stepanovs"
-   ]
-  },
-  "2026-11-23": {
-   "id": "2016/187",
-   "venue": "TCC",
-   "year": 2016,
-   "title": "Efficient Secure Multiparty Computation with Identifiable Abort",
-   "authors": [
-    "Carsten Baum",
-    "Emmanuela Orsini",
-    "Peter Scholl"
-   ]
-  },
-  "2026-11-24": {
-   "id": "2023/1778",
-   "venue": "TCC",
-   "year": 2023,
-   "title": "Immunizing Backdoored PRGs",
-   "authors": [
-    "Marshall Ball",
-    "Yevgeniy Dodis",
-    "Eli Goldin"
-   ]
-  },
   "2026-11-25": {
    "id": "2004/052",
    "venue": "EUROCRYPT",
@@ -920,28 +306,6 @@
     "Tal Malkin",
     "Satoshi Obana",
     "Moti Yung"
-   ]
-  },
-  "2026-11-26": {
-   "id": "2025/970",
-   "venue": "TCC",
-   "year": 2025,
-   "title": "How to Verify that a Small Device is Quantum, Unconditionally",
-   "authors": [
-    "Giulio Malavolta",
-    "Tamer Mour"
-   ]
-  },
-  "2026-11-27": {
-   "id": "2017/1056",
-   "venue": "CRYPTO",
-   "year": 2018,
-   "title": "Round-Optimal Secure Multi-Party Computation",
-   "authors": [
-    "Shai Halevi",
-    "Carmit Hazay",
-    "Antigoni Polychroniadou",
-    "Muthuramakrishnan Venkitasubramaniam"
    ]
   },
   "2026-11-28": {
@@ -957,83 +321,6 @@
     "Markus Schofnegger"
    ]
   },
-  "2026-11-29": {
-   "id": "2008/441",
-   "venue": "CRYPTO",
-   "year": 2009,
-   "title": "How Risky is the Random-Oracle Model?",
-   "authors": [
-    "Gaetan Leurent",
-    "Phong Q.  Nguyen"
-   ]
-  },
-  "2026-11-30": {
-   "id": "2026/1555",
-   "venue": "EUROCRYPT",
-   "year": 2026,
-   "title": "Non-Interactive Secure Computation with Constant Communication Overhead",
-   "authors": [
-    "Yuval Ishai",
-    "Ziyang Jin",
-    "Naty Peter",
-    "Akshayaram Srinivasan"
-   ]
-  },
-  "2026-12-01": {
-   "id": "2019/1165",
-   "venue": "EUROCRYPT",
-   "year": 2021,
-   "title": "Fast verification of masking schemes in characteristic two",
-   "authors": [
-    "Nicolas Bordes",
-    "Pierre Karpman"
-   ]
-  },
-  "2026-12-02": {
-   "id": "2017/067",
-   "venue": "EUROCRYPT",
-   "year": 2017,
-   "title": "Computation of a 768-bit prime field discrete logarithm",
-   "authors": [
-    "Thorsten Kleinjung",
-    "Claus Diem",
-    "Arjen K.  Lenstra",
-    "Christine Priplata",
-    "Colin Stahlke"
-   ]
-  },
-  "2026-12-03": {
-   "id": "2023/1840",
-   "venue": "CRYPTO",
-   "year": 2024,
-   "title": "Unconditionally secure quantum commitments with preprocessing",
-   "authors": [
-    "Luowen Qian"
-   ]
-  },
-  "2026-12-04": {
-   "id": "2024/857",
-   "venue": "CRYPTO",
-   "year": 2024,
-   "title": "Speeding up Preimage and Key-Recovery Attacks with Highly Biased Differential-Linear Approximations",
-   "authors": [
-    "Zhongfeng Niu",
-    "Kai Hu",
-    "Siwei Sun",
-    "Zhiyu Zhang",
-    "Meiqin Wang"
-   ]
-  },
-  "2026-12-05": {
-   "id": "2018/908",
-   "venue": "TCC",
-   "year": 2018,
-   "title": "FE and iO for Turing Machines from Minimal Assumptions",
-   "authors": [
-    "Shweta Agrawal",
-    "Monosij Maitra"
-   ]
-  },
   "2026-12-06": {
    "id": "2005/242",
    "venue": "CRYPTO",
@@ -1042,46 +329,6 @@
    "authors": [
     "Rafail Ostrovsky",
     "William E.  Skeith III"
-   ]
-  },
-  "2026-12-07": {
-   "id": "2023/673",
-   "venue": "CRYPTO",
-   "year": 2023,
-   "title": "Tracing Quantum State Distinguishers via Backtracking",
-   "authors": [
-    "Mark Zhandry"
-   ]
-  },
-  "2026-12-08": {
-   "id": "2003/050",
-   "venue": "EUROCRYPT",
-   "year": 2003,
-   "title": "Concealment and its Applications to Authenticated Encryption",
-   "authors": [
-    "Yevgeniy Dodis",
-    "Jee Hea An"
-   ]
-  },
-  "2026-12-09": {
-   "id": "2016/570",
-   "venue": "CRYPTO",
-   "year": 2016,
-   "title": "Design in Type-I, Run in Type-III: Fast and Scalable Bilinear-Type Conversion using Integer Programming",
-   "authors": [
-    "Masayuki Abe",
-    "Fumitaka Hoshino",
-    "Miyako Ohkubo"
-   ]
-  },
-  "2026-12-10": {
-   "id": "2025/1815",
-   "venue": "EUROCRYPT",
-   "year": 2025,
-   "title": "Efficient Multiparty Private Simultaneous Messages for Symmetric Functions",
-   "authors": [
-    "Reo Eriguchi",
-    "Kazumasa Shinagawa"
    ]
   }
  }
