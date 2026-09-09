@@ -164,6 +164,10 @@ def plan(args) -> None:
             }
             print(f"  {iso}  {paper['venue']} {paper['year']}  {paper['id']}  {cited} cites")
             added += 1
+            # Save as we go. Planning is slow enough to be interrupted, and a
+            # run that loses every decided day leaves the schedule with holes.
+            save_lock(lock)
+            citations.save()
             break
         else:
             raise SystemExit(
@@ -203,6 +207,15 @@ def build(args) -> None:
     if not wanted:
         raise SystemExit(
             f"schedule has nothing for {today}; its last day is {max(lock['days'])}"
+        )
+
+    # Today is the only day that actually has to exist. Without this the build
+    # succeeds on the strength of other days in the window and publishes a site
+    # that tells every visitor there is no puzzle.
+    if not args.all and today.isoformat() not in lock["days"]:
+        raise SystemExit(
+            f"schedule has no paper for today ({today}). "
+            f"Run: python -m build.main --plan --days 180"
         )
 
     missing = [

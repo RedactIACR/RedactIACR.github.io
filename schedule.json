@@ -1,7 +1,7 @@
 {
  "v": 1,
  "seed": 20260901,
- "generated": "2026-09-02T00:00:00+00:00",
+ "generated": "2026-09-09T21:15:49+00:00",
  "days": {
   "2026-09-02": {
    "id": "2021/280",
@@ -71,6 +71,76 @@
     "Daniel Wichs"
    ]
   },
+  "2026-09-09": {
+   "id": "2010/006",
+   "venue": "CRYPTO",
+   "year": 2010,
+   "title": "Factorization of a 768-bit RSA modulus",
+   "authors": [
+    "Thorsten Kleinjung",
+    "Kazumaro Aoki",
+    "Jens Franke",
+    "Arjen Lenstra",
+    "Emmanuel Thomé",
+    "Joppe Bos",
+    "Pierrick Gaudry",
+    "Alexander Kruppa",
+    "Peter Montgomery",
+    "Dag Arne Osvik",
+    "Herman te Riele",
+    "Andrey Timofeev",
+    "Paul Zimmermann"
+   ],
+   "citations": 509
+  },
+  "2026-09-10": {
+   "id": "2014/777",
+   "venue": "EUROCRYPT",
+   "year": 2015,
+   "title": "(Batch) Fully Homomorphic Encryption over Integers for Non-Binary Message Spaces",
+   "authors": [
+    "Koji Nuida",
+    "Kaoru Kurosawa"
+   ],
+   "citations": 74
+  },
+  "2026-09-11": {
+   "id": "2015/967",
+   "venue": "EUROCRYPT",
+   "year": 2016,
+   "title": "Freestart collision for full SHA-1",
+   "authors": [
+    "Marc Stevens",
+    "Pierre Karpman",
+    "Thomas Peyrin"
+   ],
+   "citations": 76
+  },
+  "2026-09-12": {
+   "id": "2014/495",
+   "venue": "CRYPTO",
+   "year": 2014,
+   "title": "Improved Short Lattice Signatures in the Standard Model",
+   "authors": [
+    "Léo Ducas",
+    "Daniele Micciancio"
+   ],
+   "citations": 129
+  },
+  "2026-09-13": {
+   "id": "2020/385",
+   "venue": "CRYPTO",
+   "year": 2020,
+   "title": "Two-Sided Malicious Security for Private Intersection-Sum with Cardinality",
+   "authors": [
+    "Peihan Miao",
+    "Sarvar Patel",
+    "Mariana Raykova",
+    "Karn Seth",
+    "Moti Yung"
+   ],
+   "citations": 73
+  },
   "2026-09-14": {
    "id": "2017/078",
    "venue": "CRYPTO",
@@ -81,6 +151,31 @@
     "Robert Kübler",
     "Alexander May"
    ]
+  },
+  "2026-09-15": {
+   "id": "2018/276",
+   "venue": "CRYPTO",
+   "year": 2019,
+   "title": "How to Record Quantum Queries, and Applications to Quantum Indifferentiability",
+   "authors": [
+    "Mark Zhandry"
+   ],
+   "citations": 241
+  },
+  "2026-09-16": {
+   "id": "2017/491",
+   "venue": "CRYPTO",
+   "year": 2017,
+   "title": "Laconic Oblivious Transfer and its Applications",
+   "authors": [
+    "Chongwon Cho",
+    "Nico Döttling",
+    "Sanjam Garg",
+    "Divya Gupta",
+    "Peihan Miao",
+    "Antigoni Polychroniadou"
+   ],
+   "citations": 87
   },
   "2026-09-17": {
    "id": "2012/297",
@@ -101,6 +196,55 @@
     "Daniele Micciancio",
     "Petros Mol"
    ]
+  },
+  "2026-09-19": {
+   "id": "2019/747",
+   "venue": "CRYPTO",
+   "year": 2019,
+   "title": "Efficient Lattice-Based Zero-Knowledge Arguments with Standard Soundness: Construction and Applications",
+   "authors": [
+    "Rupeng Yang",
+    "Man Ho Au",
+    "Zhenfei Zhang",
+    "Qiuliang Xu",
+    "Zuoxia Yu",
+    "William Whyte"
+   ],
+   "citations": 92
+  },
+  "2026-09-20": {
+   "id": "2015/552",
+   "venue": "CRYPTO",
+   "year": 2015,
+   "title": "An Improved BKW Algorithm for LWE with Applications to Cryptography and Lattices",
+   "authors": [
+    "Paul Kirchner",
+    "Pierre-Alain Fouque"
+   ],
+   "citations": 136
+  },
+  "2026-09-21": {
+   "id": "2021/1332",
+   "venue": "EUROCRYPT",
+   "year": 2022,
+   "title": "On the Lattice Isomorphism Problem, Quadratic Forms, Remarkable Lattices, and Cryptography",
+   "authors": [
+    "Léo Ducas",
+    "Wessel van Woerden"
+   ],
+   "citations": 80
+  },
+  "2026-09-22": {
+   "id": "2016/127",
+   "venue": "CRYPTO",
+   "year": 2016,
+   "title": "A subfield lattice attack on overstretched NTRU assumptions: Cryptanalysis of some FHE and Graded Encoding Schemes",
+   "authors": [
+    "Martin Albrecht",
+    "Shi Bai",
+    "Léo Ducas"
+   ],
+   "citations": 260
   },
   "2026-09-23": {
    "id": "2017/096",
@@ -141,6 +285,16 @@
     "Sanjam Garg"
    ]
   },
+  "2026-09-27": {
+   "id": "2003/064",
+   "venue": "EUROCRYPT",
+   "year": 2003,
+   "title": "On the Optimality of Linear, Differential and Sequential Distinguishers",
+   "authors": [
+    "Pascal Junod"
+   ],
+   "citations": 66
+  },
   "2026-09-28": {
    "id": "2010/563",
    "venue": "CRYPTO",
@@ -150,6 +304,20 @@
     "Tatsuaki Okamoto",
     "Katsuyuki Takashima"
    ]
+  },
+  "2026-09-29": {
+   "id": "2013/128",
+   "venue": "CRYPTO",
+   "year": 2013,
+   "title": "Attribute-Based Encryption for Circuits from Multilinear Maps",
+   "authors": [
+    "Sanjam Garg",
+    "Craig Gentry",
+    "Shai Halevi",
+    "Amit Sahai",
+    "Brent Waters"
+   ],
+   "citations": 340
   },
   "2026-10-04": {
    "id": "2012/450",
