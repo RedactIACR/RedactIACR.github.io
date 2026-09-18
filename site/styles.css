@@ -39,7 +39,12 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
+  /* Pinch-zooming to read a formula scales the whole page, bar included, so
+     app.js divides that zoom back out (see trackVisualZoom). The bar is
+     anchored from its top left, which is where the correction pins it. */
+  transform-origin: 0 0;
 }
+.sticky-head.zoomed { will-change: transform; }
 
 /* Brand, guess box, counters and controls share one row, so the pinned head
    costs as little of the page as possible. */

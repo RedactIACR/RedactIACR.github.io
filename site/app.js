@@ -850,6 +850,45 @@ function trackHeadHeight() {
   else addEventListener('resize', publish);
 }
 
+/* Pinch zoom scales every CSS pixel, so zooming into small type also blows
+   the pinned bar up to fill the screen it left. Dividing the zoom back out
+   of the bar keeps it the size it was, and translating it by the visual
+   viewport's offset keeps it over the part of the page being read rather
+   than at the top of the layout viewport the player has panned away from. */
+function trackVisualZoom() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const head = $('sticky-head');
+  let queued = false;
+
+  const apply = () => {
+    queued = false;
+    const scale = vv.scale || 1;
+    // A hair above 1, not 1: browsers report scales like 1.0000001 when a
+    // pinch settles back to unzoomed.
+    if (scale <= 1.01) {
+      head.classList.remove('zoomed');
+      head.style.transform = '';
+      return;
+    }
+    head.classList.add('zoomed');
+    head.style.transform =
+      `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / scale})`;
+  };
+
+  // Both events fire in bursts through a pinch or a pan, so the work lands
+  // once per frame.
+  const queue = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(apply);
+  };
+
+  vv.addEventListener('resize', queue);
+  vv.addEventListener('scroll', queue);
+  apply();
+}
+
 function fail(message) {
   const viewer = $('viewer');
   viewer.textContent = '';
@@ -880,6 +919,7 @@ function setZoom(direction) {
 
 async function boot() {
   trackHeadHeight();
+  trackVisualZoom();
   $('btn-help').addEventListener('click', () => $('dlg-help').showModal());
   $('btn-stats').addEventListener('click', showStats);
   $('btn-giveup').addEventListener('click', () => {
