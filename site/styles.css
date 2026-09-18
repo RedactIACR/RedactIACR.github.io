@@ -44,7 +44,22 @@ body {
      anchored from its top left, which is where the correction pins it. */
   transform-origin: 0 0;
 }
-.sticky-head.zoomed { will-change: transform; }
+.sticky-head.zoomed {
+  will-change: transform;
+  transition: opacity 140ms ease-out;
+}
+/* Hidden the instant the viewport starts moving and faded back when it
+   settles: the wobble is what has to go, and a fade back reads as deliberate
+   where a snap to the right size reads as a glitch. */
+.sticky-head.zoomed.pinching {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticky-head.zoomed { transition: none; }
+}
 
 /* Brand, guess box, counters and controls share one row, so the pinned head
    costs as little of the page as possible. */

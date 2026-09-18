@@ -43,6 +43,7 @@ const state = {
   guesses: [],
   guessed: new Set(),
   guessedStems: new Set(),
+  authorWords: [],       // per author: the words of that name still to guess
   won: false,
   gaveUp: false,
   startedAt: null,
@@ -472,10 +473,12 @@ function submitGuess(raw) {
 }
 
 function checkWin() {
-  const remaining = state.puzzle.titleWords.filter(
-    (word) => !isFree(word) && !state.guessedStems.has(stemWord(word)),
-  );
-  if (remaining.length) return;
+  const guessed = (word) => state.guessedStems.has(stemWord(word));
+  const titleDone = state.puzzle.titleWords.every((word) => isFree(word) || guessed(word));
+  // Naming an author pins the paper down as surely as the title does, and on
+  // a title running to a dozen words it is the kinder way in.
+  const authorDone = state.authorWords.some((words) => words.every(guessed));
+  if (!titleDone && !authorDone) return;
   state.won = true;
   finish();
 }
@@ -854,39 +857,72 @@ function trackHeadHeight() {
    the pinned bar up to fill the screen it left. Dividing the zoom back out
    of the bar keeps it the size it was, and translating it by the visual
    viewport's offset keeps it over the part of the page being read rather
-   than at the top of the layout viewport the player has panned away from. */
+   than at the top of the layout viewport the player has panned away from.
+
+   The pinch itself is composited off the main thread and this correction is
+   not, so mid-gesture the bar can only ever be a frame or so behind it, which
+   reads as the bar breathing in and out. It rides the gesture out hidden
+   instead and fades back once the viewport settles. */
+
+const PINCH_SETTLE_MS = 120;
+
 function trackVisualZoom() {
   const vv = window.visualViewport;
   if (!vv) return;
   const head = $('sticky-head');
-  let queued = false;
+  let frame = 0;
+  let movedAt = 0;
 
-  const apply = () => {
-    queued = false;
-    const scale = vv.scale || 1;
+  const read = () => ({ scale: vv.scale || 1, x: vv.offsetLeft, y: vv.offsetTop });
+
+  const paint = (at) => {
     // A hair above 1, not 1: browsers report scales like 1.0000001 when a
     // pinch settles back to unzoomed.
-    if (scale <= 1.01) {
-      head.classList.remove('zoomed');
+    if (at.scale <= 1.01) {
+      head.classList.remove('zoomed', 'pinching');
       head.style.transform = '';
       return;
     }
     head.classList.add('zoomed');
-    head.style.transform =
-      `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / scale})`;
+    head.style.transform = `translate(${at.x}px, ${at.y}px) scale(${1 / at.scale})`;
   };
 
-  // Both events fire in bursts through a pinch or a pan, so the work lands
-  // once per frame.
-  const queue = () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(apply);
+  let last = read();
+  paint(last);
+
+  /* Sampled per frame rather than per event: resize and scroll arrive in
+     coalesced bursts that do not line up with frames, and every frame missed
+     mid-pinch is a frame of the bar at the wrong size. */
+  const tick = (now) => {
+    const at = read();
+    const moving = Math.abs(at.scale - last.scale) > 0.002
+      || Math.abs(at.x - last.x) > 0.5
+      || Math.abs(at.y - last.y) > 0.5;
+    last = at;
+    paint(at);
+
+    if (moving) {
+      movedAt = now;
+      if (at.scale > 1.01) head.classList.add('pinching');
+    }
+    // Keep sampling for a beat after the last movement: a pinch that pauses
+    // mid-gesture is not a pinch that has ended.
+    if (now - movedAt < PINCH_SETTLE_MS) {
+      frame = requestAnimationFrame(tick);
+    } else {
+      frame = 0;
+      head.classList.remove('pinching');
+    }
   };
 
-  vv.addEventListener('resize', queue);
-  vv.addEventListener('scroll', queue);
-  apply();
+  const wake = () => {
+    if (frame) return;
+    movedAt = performance.now();
+    frame = requestAnimationFrame(tick);
+  };
+
+  vv.addEventListener('resize', wake);
+  vv.addEventListener('scroll', wake);
 }
 
 function fail(message) {
@@ -983,6 +1019,13 @@ async function boot() {
   state.puzzle = puzzle;
 
   state.free = puzzle.keys.map(isFree);
+  // Free parts of a name — initials, particles like "de" — are never hidden,
+  // so they are not part of guessing it. A name those leave with nothing to
+  // guess is dropped entirely: it would hand over the win before the game
+  // started.
+  state.authorWords = (puzzle.authorsText || [])
+    .map((name) => (String(name).toLowerCase().match(WORD_RE) || []).filter((w) => !isFree(w)))
+    .filter((words) => words.length);
   puzzle.keys.forEach((key, id) => {
     state.keyLookup.set(key, id);
     const stem = stemWord(key);
