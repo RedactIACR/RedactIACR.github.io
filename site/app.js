@@ -860,11 +860,11 @@ function trackHeadHeight() {
    than at the top of the layout viewport the player has panned away from.
 
    The pinch itself is composited off the main thread and this correction is
-   not, so mid-gesture the bar can only ever be a frame or so behind it, which
-   reads as the bar breathing in and out. It rides the gesture out hidden
-   instead and fades back once the viewport settles. */
+   not, so mid-gesture the bar trails it slightly. Sampling the viewport every
+   frame keeps that to about a frame, which is as close as a main-thread
+   transform can follow a compositor gesture. */
 
-const PINCH_SETTLE_MS = 120;
+const VIEWPORT_SETTLE_MS = 120;
 
 function trackVisualZoom() {
   const vv = window.visualViewport;
@@ -879,7 +879,7 @@ function trackVisualZoom() {
     // A hair above 1, not 1: browsers report scales like 1.0000001 when a
     // pinch settles back to unzoomed.
     if (at.scale <= 1.01) {
-      head.classList.remove('zoomed', 'pinching');
+      head.classList.remove('zoomed');
       head.style.transform = '';
       return;
     }
@@ -901,18 +901,11 @@ function trackVisualZoom() {
     last = at;
     paint(at);
 
-    if (moving) {
-      movedAt = now;
-      if (at.scale > 1.01) head.classList.add('pinching');
-    }
+    if (moving) movedAt = now;
     // Keep sampling for a beat after the last movement: a pinch that pauses
     // mid-gesture is not a pinch that has ended.
-    if (now - movedAt < PINCH_SETTLE_MS) {
-      frame = requestAnimationFrame(tick);
-    } else {
-      frame = 0;
-      head.classList.remove('pinching');
-    }
+    if (now - movedAt < VIEWPORT_SETTLE_MS) frame = requestAnimationFrame(tick);
+    else frame = 0;
   };
 
   const wake = () => {
