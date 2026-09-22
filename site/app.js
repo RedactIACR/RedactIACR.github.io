@@ -1,4 +1,4 @@
-/* Redact IACR — a daily redaction puzzle over CRYPTO / EUROCRYPT / TCC papers.
+/* Redact IACR — a daily redaction puzzle over CRYPTO / EUROCRYPT / ASIACRYPT / TCC papers.
  *
  * The real paper is rendered with pdf.js and blacked out by laying rectangles
  * over it, so what you read is the published typesetting — equations, figures

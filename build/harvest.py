@@ -1,9 +1,10 @@
 """Harvest the two source datasets the puzzle corpus is joined from.
 
-CryptoDB (iacr.org/cryptodb) knows which papers appeared at CRYPTO, EUROCRYPT
-and TCC but does not record ePrint identifiers.  The ePrint OAI-PMH feed knows
-every ePrint identifier but does not record the publication venue.  We harvest
-both and join them on the normalised title in `corpus.py`.
+CryptoDB (iacr.org/cryptodb) knows which papers appeared at CRYPTO, EUROCRYPT,
+ASIACRYPT and TCC, and who wrote them, but does not record ePrint identifiers.
+The ePrint OAI-PMH feed knows every ePrint identifier but does not record the
+publication venue.  We harvest both and join them on the normalised title in
+`corpus.py`.
 
 Both harvests are cached on disk so repeated builds do not re-hit IACR.
 """
@@ -24,12 +25,16 @@ USER_AGENT = "redact-iacr build script (+https://github.com/) - polite, cached"
 CRYPTODB_URL = "https://iacr.org/cryptodb/data/conf.php"
 OAI_URL = "https://eprint.iacr.org/oai"
 
-VENUES = ("crypto", "eurocrypt", "tcc")
+VENUES = ("crypto", "eurocrypt", "asiacrypt", "tcc")
 
-# CRYPTO from 1981, EUROCRYPT from 1982, TCC from 2004.  Asking CryptoDB for a
-# year a venue did not run simply returns a page with no papers, so one
-# generous range covers all three.
+# CRYPTO from 1981, EUROCRYPT from 1982, ASIACRYPT from 1991, TCC from 2004.
+# Asking CryptoDB for a year a venue did not run simply returns a page with no
+# papers, so one generous range covers all four.
 FIRST_YEAR = 1981
+
+# Bumped whenever the cached shape changes, so a cache from an older build is
+# harvested afresh rather than read as if it had fields it lacks.
+CRYPTODB_FORMAT = 2
 
 OAI_NS = {
     "oai": "http://www.openarchives.org/OAI/2.0/",
@@ -42,6 +47,10 @@ _PUB_TITLE_RE = re.compile(
     re.S,
 )
 _TAG_RE = re.compile(r"<[^>]+>")
+# Authors are linked by CryptoDB's own author key, which stays the same across
+# a person's papers however their name is spelled on each.
+_AUTHORS_BLOCK_RE = re.compile(r'<div class="authors"[^>]*>(.*?)</div>', re.S)
+_AUTHOR_RE = re.compile(r'<a href="author\.php\?authorkey=(\d+)">(.*?)</a>', re.S)
 
 
 def _fetch(url: str, *, retries: int = 3, pause: float = 0.5) -> bytes:
@@ -59,35 +68,60 @@ def _fetch(url: str, *, retries: int = 3, pause: float = 0.5) -> bytes:
 
 
 def harvest_cryptodb(cache_dir: Path, last_year: int, *, refresh: bool = False) -> list[dict]:
-    """Return every CRYPTO/EUROCRYPT/TCC paper CryptoDB knows about."""
+    """Return every paper CryptoDB lists for the venues, with its authors."""
     cache_path = cache_dir / "cryptodb.json"
     if cache_path.exists() and not refresh:
-        return json.loads(cache_path.read_text(encoding="utf-8"))
+        cached = json.loads(cache_path.read_text(encoding="utf-8"))
+        if (
+            isinstance(cached, dict)
+            and cached.get("format") == CRYPTODB_FORMAT
+            and cached.get("venues") == list(VENUES)
+        ):
+            return cached["papers"]
+        print("  cached CryptoDB harvest predates this build's format; re-harvesting")
 
     papers: list[dict] = []
     for venue in VENUES:
         for year in range(FIRST_YEAR, last_year + 1):
             query = urllib.parse.urlencode({"venue": venue, "year": year})
             page = _fetch(f"{CRYPTODB_URL}?{query}").decode("utf-8", "replace")
-            found = 0
-            for pubkey, raw_title in _PUB_TITLE_RE.findall(page):
-                title = html.unescape(_TAG_RE.sub("", raw_title)).strip()
-                if not title:
-                    continue
-                papers.append(
-                    {
-                        "pubkey": pubkey,
-                        "title": title,
-                        "venue": venue.upper(),
-                        "year": year,
-                    }
-                )
-                found += 1
-            print(f"  cryptodb {venue} {year}: {found} papers", flush=True)
+            found = _parse_conf_page(page, venue.upper(), year)
+            papers.extend(found)
+            print(f"  cryptodb {venue} {year}: {len(found)} papers", flush=True)
             time.sleep(0.2)
 
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path.write_text(json.dumps(papers, indent=1), encoding="utf-8")
+    cache_path.write_text(
+        json.dumps({"format": CRYPTODB_FORMAT, "venues": list(VENUES), "papers": papers}, indent=1),
+        encoding="utf-8",
+    )
+    return papers
+
+
+def _parse_conf_page(page: str, venue: str, year: int) -> list[dict]:
+    """The papers on one venue-year page, each with its authors."""
+    matches = list(_PUB_TITLE_RE.finditer(page))
+    papers: list[dict] = []
+    for index, match in enumerate(matches):
+        title = html.unescape(_TAG_RE.sub("", match.group(2))).strip()
+        if not title:
+            continue
+        # A paper's author list sits between its title and the next paper's.
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(page)
+        block = _AUTHORS_BLOCK_RE.search(page, match.end(), end)
+        authors = [
+            {"key": key, "name": html.unescape(_TAG_RE.sub("", name)).strip()}
+            for key, name in _AUTHOR_RE.findall(block.group(1) if block else "")
+        ]
+        papers.append(
+            {
+                "pubkey": match.group(1),
+                "title": title,
+                "venue": venue,
+                "year": year,
+                "authors": authors,
+            }
+        )
     return papers
 
 

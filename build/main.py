@@ -26,8 +26,8 @@ from pathlib import Path
 
 from .boxes import ExtractionError, extract_boxes, pack_pages, word_tokens
 from .citations import Citations, LookupFailed
-from .corpus import join_venues, shuffled_pool
-from .harvest import _fetch, harvest_cryptodb, harvest_eprint
+from .corpus import join_venues, papers_per_author, shuffled_pool, with_prolific_author
+from .harvest import VENUES, _fetch, harvest_cryptodb, harvest_eprint
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
@@ -99,7 +99,7 @@ def plan(args) -> None:
     taken = {entry["id"] for entry in lock["days"].values()}
     start = dt.date.fromisoformat(args.start) if args.start else dt.datetime.now(dt.UTC).date()
 
-    print("harvesting CryptoDB (CRYPTO / EUROCRYPT / TCC)...")
+    print(f"harvesting CryptoDB ({' / '.join(v.upper() for v in VENUES)})...")
     cryptodb = harvest_cryptodb(CACHE, start.year + 1, refresh=args.refresh)
     print(f"  {len(cryptodb)} conference papers")
 
@@ -110,6 +110,13 @@ def plan(args) -> None:
     papers = join_venues(cryptodb, eprint)
     print(f"joined: {len(papers)} conference papers are also on ePrint")
 
+    # Counted over every paper CryptoDB lists for the venues, not just the ones
+    # on ePrint: an author's standing does not depend on where they preprint.
+    counts = papers_per_author(cryptodb)
+    papers = with_prolific_author(papers, counts, args.min_author_papers)
+    print(f"  {len(papers)} have an author with at least {args.min_author_papers} papers "
+          f"at these venues")
+
     wanted = [
         (start + dt.timedelta(days=i)).isoformat()
         for i in range(args.days)
@@ -119,37 +126,14 @@ def plan(args) -> None:
         print(f"schedule already covers {args.days} days from {start}")
         return
 
-    # Walk the whole shuffled pool: the citation filter rejects most papers,
-    # so a small fixed draw would run dry.
     queue = shuffled_pool(papers, args.seed, taken)
     citations = Citations(CACHE)
     print(f"planning {len(wanted)} new days ({wanted[0]} .. {wanted[-1]})")
-    if args.min_citations:
-        print(f"  requiring at least {args.min_citations} citations (Semantic Scholar)")
 
-    added, thin, unknown = 0, 0, 0
+    added = 0
     for iso in wanted:
         while queue:
             paper = queue.pop(0)
-
-            try:
-                cited = citations.get(paper["title"]) if args.min_citations else 0
-            except LookupFailed as exc:
-                # Guessing here would silently exclude good papers, so stop and
-                # keep what has been decided so far.
-                citations.save()
-                save_lock(lock)
-                raise SystemExit(f"citation lookup failed: {exc}\nRe-run to resume.")
-            if args.min_citations:
-                if cited is None:
-                    # Unknown is not the same as zero, but an unverifiable
-                    # count cannot be said to clear the bar.
-                    unknown += 1
-                    continue
-                if cited < args.min_citations:
-                    thin += 1
-                    continue
-
             try:
                 # Building it here is the point: a day only enters the
                 # schedule once its PDF is proven to extract.
@@ -157,6 +141,16 @@ def plan(args) -> None:
             except (ExtractionError, RuntimeError) as exc:
                 print(f"  skip {paper['id']}: {exc}")
                 continue
+
+            # The count is shown on the result card but decides nothing, so a
+            # lookup that cannot be completed leaves the day without one
+            # rather than stopping the plan.
+            try:
+                cited = citations.get(paper["title"])
+            except LookupFailed as exc:
+                print(f"  no citation count for {paper['id']}: {exc}")
+                cited = None
+
             lock["days"][iso] = {
                 "id": paper["id"], "venue": paper["venue"], "year": paper["year"],
                 "title": paper["title"], "authors": paper["authors"],
@@ -170,15 +164,9 @@ def plan(args) -> None:
             citations.save()
             break
         else:
-            raise SystemExit(
-                f"ran out of usable papers at {iso} "
-                f"(rejected {thin} under-cited, {unknown} unknown to Semantic Scholar)"
-            )
+            raise SystemExit(f"ran out of usable papers at {iso}")
 
     citations.save()
-    if args.min_citations:
-        print(f"  rejected {thin} papers under {args.min_citations} citations, "
-              f"{unknown} not found in Semantic Scholar")
 
     lock["seed"] = args.seed
     lock["generated"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
@@ -272,7 +260,7 @@ def build(args) -> None:
                 "start": dates[0],
                 "end": dates[-1],
                 "days": len(dates),
-                "venues": ["CRYPTO", "EUROCRYPT", "TCC"],
+                "venues": [venue.upper() for venue in VENUES],
                 "dates": dates,
             },
             indent=1,
@@ -302,8 +290,9 @@ def main() -> None:
     parser.add_argument("--start", default="", help="first day to plan (--plan, default: today UTC)")
     parser.add_argument("--seed", type=int, default=20260901, help="schedule shuffle seed (--plan)")
     parser.add_argument("--refresh", action="store_true", help="re-harvest IACR metadata (--plan)")
-    parser.add_argument("--min-citations", type=int, default=50,
-                        help="skip papers cited fewer times than this (--plan; 0 disables)")
+    parser.add_argument("--min-author-papers", type=int, default=35,
+                        help="require an author with at least this many papers at the "
+                             "venues, per CryptoDB (--plan)")
     parser.add_argument("--back", type=int, default=2, help="days before today to keep serving")
     parser.add_argument("--horizon", type=int, default=21, help="days ahead to build")
     parser.add_argument("--today", default="", help="override today's date (testing)")

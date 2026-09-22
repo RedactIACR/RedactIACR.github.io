@@ -6,6 +6,7 @@ import datetime as dt
 import random
 import re
 import unicodedata
+from collections import Counter
 
 # Inline LaTeX that shows up in ePrint titles: $x^2$, \mathbb{F}, {AES}, \'e ...
 _MATH_SPAN_RE = re.compile(r"\$[^$]*\$")
@@ -67,6 +68,9 @@ def join_venues(cryptodb: list[dict], eprint: list[dict]) -> list[dict]:
             "id": best["id"],
             "title": best["title"],
             "authors": best["authors"],
+            # CryptoDB's keys for the same people, which unlike the names can
+            # be counted across papers.
+            "authorKeys": [author["key"] for author in paper["authors"]],
             "abstract": best["abstract"],
             "keywords": best["keywords"],
             "venue": paper["venue"],
@@ -76,14 +80,34 @@ def join_venues(cryptodb: list[dict], eprint: list[dict]) -> list[dict]:
     return sorted(joined.values(), key=lambda rec: rec["id"])
 
 
+def papers_per_author(cryptodb: list[dict]) -> Counter:
+    """How many papers each CryptoDB author has across the harvested venues."""
+    counts: Counter = Counter()
+    seen: set[str] = set()
+    for paper in cryptodb:
+        if paper["pubkey"] in seen:
+            continue
+        seen.add(paper["pubkey"])
+        counts.update({author["key"] for author in paper["authors"]})
+    return counts
+
+
+def with_prolific_author(papers: list[dict], counts: Counter, minimum: int) -> list[dict]:
+    """Papers with at least one author who has `minimum` papers at the venues."""
+    return [
+        paper for paper in papers
+        if any(counts[key] >= minimum for key in paper["authorKeys"])
+    ]
+
+
 def shuffled_pool(
     papers: list[dict], seed: int, exclude_ids: set[str] | None = None
 ) -> list[dict]:
     """Every eligible paper, in a deterministic order for a given seed.
 
-    The caller walks this and takes what it can use. Filters that need the
-    network (citation counts) or the PDF itself are applied during the walk,
-    so only the candidates actually considered get looked up.
+    The caller walks this and takes what it can use. Checks that need the PDF
+    itself are applied during the walk, so only the candidates actually
+    considered get downloaded.
     """
     pool = [p for p in papers if p["id"] not in (exclude_ids or set())]
     rng = random.Random(seed)

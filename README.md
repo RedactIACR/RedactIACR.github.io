@@ -1,9 +1,10 @@
 # Redact IACR
 
 A daily [Redactle](https://redactle.net)-style word game played over cryptology papers.
-Every day one paper from **CRYPTO**, **EUROCRYPT** or **TCC** is pulled from the
-Cryptology ePrint Archive, blacked out in full, and you uncover it one word at a
-time. You win when every word of the title is revealed.
+Every day one paper from **CRYPTO**, **EUROCRYPT**, **ASIACRYPT** or **TCC** is
+pulled from the Cryptology ePrint Archive, blacked out in full, and you uncover it
+one word at a time. You win when every word of the title is revealed, or when you
+have guessed the full name of any one author.
 
 You read the **real PDF**, rendered with pdf.js and covered with black
 rectangles — equations, figures, tables and all — rather than a reconstruction
@@ -68,47 +69,41 @@ joins them:
 
 | Source | Provides | Missing |
 | --- | --- | --- |
-| [CryptoDB](https://iacr.org/cryptodb/) | which papers appeared at CRYPTO / EUROCRYPT / TCC | ePrint identifiers |
+| [CryptoDB](https://iacr.org/cryptodb/) | which papers appeared at CRYPTO / EUROCRYPT / ASIACRYPT / TCC, and their authors | ePrint identifiers |
 | [ePrint OAI-PMH](https://eprint.iacr.org/oai) | every ePrint id, title, authors, abstract | publication venue |
-| [Semantic Scholar](https://www.semanticscholar.org/product/api) | citation counts | everything else |
+| [Semantic Scholar](https://www.semanticscholar.org/product/api) | citation counts, shown on the result card | everything else |
 
 They share no identifier, so `build/corpus.py` joins them on a normalised
-title. That yields roughly **3,300 papers** that both appeared at one of the
-three venues and are available on ePrint. From those, a seeded shuffle assigns
+title. That yields roughly **4,500 papers** that both appeared at one of the
+four venues and are available on ePrint. From those, a seeded shuffle assigns
 one paper per day.
 
 Only the scheduled papers' PDFs are downloaded — about 100 per build, not the
 whole archive. Metadata harvests and PDFs are cached under `cache/`, so
 re-running the build is cheap.
 
-### Only well-cited papers
+### Only papers with a prolific author
 
-A paper needs **at least 50 citations** to be scheduled (`--min-citations`, 0
-disables). Counts come from Semantic Scholar, matched on the title, and are cached in
-`cache/citations.json`.
+A paper is scheduled only if at least one of its authors has **35 or more
+papers** across CRYPTO, EUROCRYPT, ASIACRYPT and TCC (`--min-author-papers`).
+The count comes from CryptoDB itself: every venue page links each author by
+CryptoDB's author key, which stays the same across a person's papers however
+their name is spelled on each, so counting keys counts people rather than name
+variants. All of CryptoDB's papers at the venues count, not only the ones also
+on ePrint.
 
-Not OpenAlex: it moved to a credit model whose anonymous allowance works out
-at a hundred lookups a day, which does not cover even one planning run.
-Semantic Scholar's free tier is roughly 100 requests per five minutes — slow
-but sufficient — and setting `SEMANTIC_SCHOLAR_API_KEY` raises it.
+About a hundred authors clear 35, and the papers they coauthored come to
+roughly **2,400** of the joined corpus, or six and a half years of daily
+puzzles. Unlike a citation bound, the rule does not skew the game old: a new
+paper qualifies the day it appears.
 
-Two distinctions in [`build/citations.py`](build/citations.py) matter. A paper
-the graph does not know is recorded as `None`, not zero, and the scheduler
-treats unknown as ineligible, since an unverifiable count cannot be shown to
-clear the bar. A lookup that could not be *completed* raises instead, and is
-never cached: recording a throttled request as `None` would bar a paper from
-the schedule permanently on the strength of a transient failure.
-
-`/search/match` returns its single best guess, which for a short or generic
-title can be a different paper, so an exact title match is required.
-
-About a third of the corpus clears 50, which is roughly a thousand papers, or
-three years of daily puzzles. The filter skews the game old: recent work has
-not had time to accumulate citations, so papers from the last two or three
-years rarely qualify.
-
-Because most candidates are rejected, planning walks the whole shuffled pool
-and looks up citations lazily, only for the candidates it actually considers.
+Citation counts are still looked up, from Semantic Scholar, but only to show on
+the result card and only for papers actually scheduled. They decide nothing, so
+a lookup that cannot be completed leaves that day without a count rather than
+stopping the plan. Semantic Scholar's free tier is roughly 100 requests per
+five minutes, and setting `SEMANTIC_SCHOLAR_API_KEY` raises it. `/search/match`
+returns its single best guess, which for a short or generic title can be a
+different paper, so an exact title match is required.
 
 ## How papers are redacted
 
