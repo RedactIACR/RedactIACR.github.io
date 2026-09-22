@@ -51,6 +51,21 @@ _LIGATURES = {
     "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st",
 }
 
+# TeX sets \'e, \"o, \c{c} and friends as a standalone accent glyph laid over
+# the base letter, so extraction reads "L´eo" and "D¨ottling". The accent is no
+# word character, so left alone it splits the name in two: "L" given away as a
+# single letter, "eo" left as a guess nobody would make. Each maps to the
+# combining mark that folds it back into its letter.
+_SPACING_ACCENTS = {
+    "`": "\u0300", "´": "\u0301", "ˆ": "\u0302", "^": "\u0302",
+    "˜": "\u0303", "~": "\u0303", "¯": "\u0304", "ˉ": "\u0304",
+    "˘": "\u0306", "˙": "\u0307", "¨": "\u0308", "˚": "\u030a",
+    "˝": "\u030b", "ˇ": "\u030c", "¸": "\u0327", "˛": "\u0328",
+}
+# An accented i or j is set on the dotless letter, but composes from the
+# dotted one.
+_DOTLESS = {"ı": "i", "ȷ": "j"}
+
 _GLYPH_KEYWORDS = {
     "α": "alpha", "β": "beta", "γ": "gamma", "δ": "delta",
     "ε": "epsilon", "ϵ": "epsilon", "ζ": "zeta", "η": "eta",
@@ -124,8 +139,61 @@ def _page_glyphs(page: pymupdf.Page) -> list[list[dict]]:
                     for piece in _LIGATURES.get(text, text):
                         glyphs.append({"c": piece, "bbox": char["bbox"], "math": is_math})
             if glyphs:
-                lines.append(glyphs)
+                lines.append(_attach_accents(glyphs))
     return lines
+
+
+def _accent_mark(char: str) -> str | None:
+    if char in _SPACING_ACCENTS:
+        return _SPACING_ACCENTS[char]
+    return char if unicodedata.combining(char) else None
+
+
+def _attach_accents(glyphs: list[dict]) -> list[dict]:
+    """Fold standalone accent glyphs into the letter they sit on.
+
+    An accent belongs to the neighbouring letter its centre falls strictly
+    within, which is what tells TeX's accents apart from a tilde in a URL or a
+    backtick in running text: those sit beside letters, not on them. Accents
+    from a maths font, and letters set in one, are left alone, since a hat or
+    arrow over a variable is notation, not spelling.
+    """
+    absorbed: set[int] = set()
+    for index, glyph in enumerate(glyphs):
+        mark = _accent_mark(glyph["c"])
+        if mark is None or glyph["math"]:
+            continue
+        ax0, ay0, ax1, ay1 = glyph["bbox"]
+        centre = (ax0 + ax1) / 2
+        # TeX emits the accent ahead of its letter, so look there first.
+        for other in (index + 1, index - 1):
+            if not 0 <= other < len(glyphs):
+                continue
+            base = glyphs[other]
+            x0, y0, x1, y1 = base["bbox"]
+            if base["math"] or not base["c"].isalpha() or not x0 < centre < x1:
+                continue
+            letter = _DOTLESS.get(base["c"], base["c"])
+            composed = unicodedata.normalize("NFC", letter + mark)
+            # A pairing with no precomposed letter keeps the bare one. The
+            # accent is still covered with it, and the client ignores accents
+            # when matching guesses anyway.
+            base["c"] = composed if len(composed) == 1 and _WORD_RE.match(composed) else letter
+            base["bbox"] = (min(x0, ax0), min(y0, ay0), max(x1, ax1), max(y1, ay1))
+
+            # The accent may also have been all that stood between this word
+            # and the one before it, where the PDF has no space glyph. Where
+            # the letters on either side are visibly apart, leave a break.
+            far = index - 1 if other == index + 1 else index + 1
+            if 0 <= far < len(glyphs):
+                away = glyphs[far]["bbox"]
+                gap = x0 - away[2] if far < other else away[0] - x1
+                if gap > 0.15 * (y1 - y0):
+                    glyph["c"] = " "
+                    break
+            absorbed.add(index)
+            break
+    return [glyph for index, glyph in enumerate(glyphs) if index not in absorbed]
 
 
 def _union(glyphs: list[dict]) -> list[int]:

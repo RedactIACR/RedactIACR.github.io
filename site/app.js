@@ -65,8 +65,20 @@ const todayUTC = () => new Date().toISOString().slice(0, 10);
 const isFree = (word) => word.length < 2 || FREE_WORDS.has(word.toLowerCase());
 
 function normalise(text) {
-  const tokens = String(text).toLowerCase().match(WORD_RE);
+  // NFC first: a keyboard that sends "e" plus a combining accent would
+  // otherwise have the word cut short at the accent.
+  const tokens = String(text).normalize('NFC').toLowerCase().match(WORD_RE);
   return tokens && tokens.length ? tokens[0] : null;
+}
+
+/* Accents are matched loosely, so "leo" finds Léo and "dottling" finds
+ * Döttling: the paper is full of names, and nobody should need an accented
+ * keyboard to guess one. NFD strips the accents that decompose; the rest are
+ * letters in their own right and are spelled out. */
+const UNACCENTED = { ø: 'o', ł: 'l', đ: 'd', ı: 'i', ß: 'ss', æ: 'ae', œ: 'oe' };
+
+function foldAccents(word) {
+  return word.normalize('NFD').replace(/\p{M}/gu, '').replace(/[øłđıßæœ]/g, (ch) => UNACCENTED[ch]);
 }
 
 /* ------------------------------------------------------------- stemming */
@@ -115,9 +127,11 @@ function endsCVC(word) {
 
 const stemCache = new Map();
 
+/* Every comparison between a guess and the paper goes through here, which is
+ * what makes folding accents at this one point enough. */
 function stemWord(word) {
   if (stemCache.has(word)) return stemCache.get(word);
-  const result = computeStem(word);
+  const result = computeStem(foldAccents(word));
   stemCache.set(word, result);
   return result;
 }
