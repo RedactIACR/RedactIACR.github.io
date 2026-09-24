@@ -82,20 +82,34 @@ Only the scheduled papers' PDFs are downloaded — about 100 per build, not the
 whole archive. Metadata harvests and PDFs are cached under `cache/`, so
 re-running the build is cheap.
 
-### Only papers with a prolific author
+### Only papers by a listed author
 
-A paper is scheduled only if at least one of its authors has **35 or more
-papers** across CRYPTO, EUROCRYPT, ASIACRYPT and TCC (`--min-author-papers`).
-The count comes from CryptoDB itself: every venue page links each author by
-CryptoDB's author key, which stays the same across a person's papers however
-their name is spelled on each, so counting keys counts people rather than name
-variants. All of CryptoDB's papers at the venues count, not only the ones also
-on ePrint.
+A paper is scheduled only if at least one of its authors is listed in
+[`authors.txt`](authors.txt), a hand-curated roster kept in the repository.
 
-About a hundred authors clear 35, and the papers they coauthored come to
-roughly **2,400** of the joined corpus, or six and a half years of daily
-puzzles. Unlike a citation bound, the rule does not skew the game old: a new
-paper qualifies the day it appears.
+The roster is generated from CryptoDB and then edited by hand:
+
+```
+python -m build.main --authors > authors.txt     # every author with >= 20 papers
+```
+
+`--min-author-papers` sets that lower bound; it decides only who is proposed,
+never who counts, which is whatever the file still lists. Each line is a
+CryptoDB author key, that author's paper count at the four venues, and their
+name; delete or comment out a line to bar them. Only the key is read, so the
+count can go stale without affecting anything.
+
+Author keys, not names, because the same person appears under several
+spellings over the years — "Ivan Damgård" and "Ivan Damgard" — and CryptoDB's
+key ties those together. Counts cover every paper CryptoDB lists at the venues,
+not only those also on ePrint: an author's standing does not depend on where
+they preprint.
+
+Generation writes to stdout rather than over the file, so a regeneration can
+never silently reinstate authors that were struck off. Redirect it and read the
+diff. 232 authors clear 20 papers, and between them they carry about **3,400**
+of the joined corpus, or nine years of daily puzzles. Unlike a citation bound,
+this does not skew the game old: a new paper qualifies the day it appears.
 
 Citation counts are still looked up, from Semantic Scholar, but only to show on
 the result card and only for papers actually scheduled. They decide nothing, so

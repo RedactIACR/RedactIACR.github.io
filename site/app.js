@@ -867,38 +867,49 @@ function trackHeadHeight() {
   else addEventListener('resize', publish);
 }
 
-/* Pinch zoom scales every CSS pixel, so zooming into small type also blows
-   the pinned bar up to fill the screen it left. Dividing the zoom back out
-   of the bar keeps it the size it was, and translating it by the visual
-   viewport's offset keeps it over the part of the page being read rather
-   than at the top of the layout viewport the player has panned away from.
+/* Pinch zoom scales every CSS pixel, so zooming into small type also blows the
+   pinned bar and any open dialog up to fill the screen they left. Dividing the
+   zoom back out of them keeps them the size they were, and shifting them by
+   the visual viewport's offset keeps them over the part of the page being read
+   rather than where the layout viewport says the top or the centre is.
+
+   The correction goes out as custom properties rather than being written onto
+   the elements: a dialog opened mid-zoom is then already correct on its first
+   frame, without this having to know when one opens.
 
    The pinch itself is composited off the main thread and this correction is
-   not, so mid-gesture the bar trails it slightly. Sampling the viewport every
-   frame keeps that to about a frame, which is as close as a main-thread
-   transform can follow a compositor gesture. */
+   not, so mid-gesture it trails slightly. Sampling the viewport every frame
+   keeps that to about a frame, which is as close as a main-thread transform
+   can follow a compositor gesture. */
 
 const VIEWPORT_SETTLE_MS = 120;
 
 function trackVisualZoom() {
   const vv = window.visualViewport;
   if (!vv) return;
-  const head = $('sticky-head');
+  const root = document.documentElement;
   let frame = 0;
   let movedAt = 0;
 
-  const read = () => ({ scale: vv.scale || 1, x: vv.offsetLeft, y: vv.offsetTop });
+  const read = () => ({
+    scale: vv.scale || 1, x: vv.offsetLeft, y: vv.offsetTop, w: vv.width, h: vv.height,
+  });
 
   const paint = (at) => {
     // A hair above 1, not 1: browsers report scales like 1.0000001 when a
     // pinch settles back to unzoomed.
     if (at.scale <= 1.01) {
-      head.classList.remove('zoomed');
-      head.style.transform = '';
+      root.classList.remove('zoomed');
       return;
     }
-    head.classList.add('zoomed');
-    head.style.transform = `translate(${at.x}px, ${at.y}px) scale(${1 / at.scale})`;
+    root.classList.add('zoomed');
+    root.style.setProperty('--vv-unscale', `${1 / at.scale}`);
+    root.style.setProperty('--vv-x', `${at.x}px`);
+    root.style.setProperty('--vv-y', `${at.y}px`);
+    // A modal dialog is centred on the layout viewport, so what it needs is
+    // the offset from that centre to the centre of what is on screen.
+    root.style.setProperty('--vv-dx', `${at.x + at.w / 2 - root.clientWidth / 2}px`);
+    root.style.setProperty('--vv-dy', `${at.y + at.h / 2 - root.clientHeight / 2}px`);
   };
 
   let last = read();
@@ -906,7 +917,7 @@ function trackVisualZoom() {
 
   /* Sampled per frame rather than per event: resize and scroll arrive in
      coalesced bursts that do not line up with frames, and every frame missed
-     mid-pinch is a frame of the bar at the wrong size. */
+     mid-pinch is a frame at the wrong size. */
   const tick = (now) => {
     const at = read();
     const moving = Math.abs(at.scale - last.scale) > 0.002

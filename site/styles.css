@@ -44,7 +44,10 @@ body {
      anchored from its top left, which is where the correction pins it. */
   transform-origin: 0 0;
 }
-.sticky-head.zoomed { will-change: transform; }
+:root.zoomed .sticky-head {
+  transform: translate(var(--vv-x), var(--vv-y)) scale(var(--vv-unscale));
+  will-change: transform;
+}
 
 /* Brand, guess box, counters and controls share one row, so the pinned head
    costs as little of the page as possible. */
@@ -320,6 +323,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 60px; }
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
 }
 .result[open] { animation: result-in 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+/* The entry animation ends on `transform: none`, which would undo the
+   pinch-zoom correction for as long as it runs. */
+:root.zoomed .result[open] { animation: none; }
 .result::backdrop { backdrop-filter: blur(3px); }
 
 @keyframes result-in {
@@ -450,6 +456,17 @@ dialog {
   font-size: 14px;
 }
 dialog::backdrop { background: rgba(8, 9, 12, 0.72); }
+
+/* A modal dialog is centred on the layout viewport and scales with the page,
+   so the result card at the end of a game read while pinch-zoomed arrives at
+   several times its size with half of it off screen. Same correction as the
+   pinned bar, about the card's own centre, which leaves it the size it has
+   unzoomed. */
+:root.zoomed dialog[open] {
+  transform: translate(var(--vv-dx), var(--vv-dy)) scale(var(--vv-unscale));
+  transform-origin: center;
+  will-change: transform;
+}
 dialog h2 { margin: 0 0 12px; font-size: 18px; }
 dialog ul { padding-left: 18px; }
 dialog li { margin-bottom: 7px; }

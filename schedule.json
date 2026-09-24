@@ -286,24 +286,16 @@
    ]
   },
   "2026-09-27": {
-   "id": "2003/064",
-   "venue": "EUROCRYPT",
-   "year": 2003,
-   "title": "On the Optimality of Linear, Differential and Sequential Distinguishers",
+   "id": "2022/406",
+   "venue": "ASIACRYPT",
+   "year": 2022,
+   "title": "Counting Vampires: From Univariate Sumcheck to Updatable ZK-SNARK",
    "authors": [
-    "Pascal Junod"
+    "Helger Lipmaa",
+    "Janno Siim",
+    "Michal Zajac"
    ],
-   "citations": 66
-  },
-  "2026-09-28": {
-   "id": "2010/563",
-   "venue": "CRYPTO",
-   "year": 2010,
-   "title": "Fully Secure Functional Encryption with General Relations from the Decisional Linear Assumption",
-   "authors": [
-    "Tatsuaki Okamoto",
-    "Katsuyuki Takashima"
-   ]
+   "citations": 23
   },
   "2026-09-29": {
    "id": "2013/128",
@@ -318,17 +310,6 @@
     "Brent Waters"
    ],
    "citations": 340
-  },
-  "2026-10-04": {
-   "id": "2012/450",
-   "venue": "CRYPTO",
-   "year": 2012,
-   "title": "Tweakable Blockciphers with Beyond Birthday-Bound Security",
-   "authors": [
-    "Will Landecker",
-    "Thomas Shrimpton",
-    "R.  Seth Terashima"
-   ]
   },
   "2026-10-05": {
    "id": "2002/057",
@@ -403,28 +384,6 @@
     "Rafael Pass"
    ]
   },
-  "2026-10-31": {
-   "id": "2007/368",
-   "venue": "CRYPTO",
-   "year": 2007,
-   "title": "Reducing Trust in the PKG in Identity Based Cryptosystems",
-   "authors": [
-    "Vipul Goyal"
-   ]
-  },
-  "2026-11-03": {
-   "id": "2018/161",
-   "venue": "EUROCRYPT",
-   "year": 2018,
-   "title": "Boomerang Connectivity Table: A New Cryptanalysis Tool",
-   "authors": [
-    "Carlos Cid",
-    "Tao Huang",
-    "Thomas Peyrin",
-    "Yu Sasaki",
-    "Ling Song"
-   ]
-  },
   "2026-11-04": {
    "id": "2018/429",
    "venue": "CRYPTO",
@@ -446,15 +405,6 @@
     "Zvika Brakerski"
    ]
   },
-  "2026-11-12": {
-   "id": "2021/578",
-   "venue": "EUROCRYPT",
-   "year": 2021,
-   "title": "Cryptanalytic Applications of the Polynomial Method for Solving Multivariate Equation Systems over GF(2)",
-   "authors": [
-    "Itai Dinur"
-   ]
-  },
   "2026-11-21": {
    "id": "2007/333",
    "venue": "EUROCRYPT",
@@ -474,19 +424,6 @@
     "Tal Malkin",
     "Satoshi Obana",
     "Moti Yung"
-   ]
-  },
-  "2026-11-28": {
-   "id": "2019/1107",
-   "venue": "EUROCRYPT",
-   "year": 2020,
-   "title": "On a Generalization of Substitution-Permutation Networks: The HADES Design Strategy",
-   "authors": [
-    "Lorenzo Grassi",
-    "Reinhard Lüftenegger",
-    "Christian Rechberger",
-    "Dragos Rotaru",
-    "Markus Schofnegger"
    ]
   },
   "2026-12-06": {

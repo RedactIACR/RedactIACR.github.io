@@ -21,18 +21,20 @@ import argparse
 import datetime as dt
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
 from .boxes import ExtractionError, extract_boxes, pack_pages, word_tokens
 from .citations import Citations, LookupFailed
-from .corpus import join_venues, papers_per_author, shuffled_pool, with_prolific_author
+from .corpus import author_roster, by_roster, join_venues, parse_roster, shuffled_pool
 from .harvest import VENUES, _fetch, harvest_cryptodb, harvest_eprint
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
 OUT = ROOT / "site" / "puzzles"
 LOCK = ROOT / "schedule.json"
+ROSTER = ROOT / "authors.txt"
 
 
 def fetch_pdf(eprint_id: str, *, refresh: bool = False) -> bytes:
@@ -110,12 +112,16 @@ def plan(args) -> None:
     papers = join_venues(cryptodb, eprint)
     print(f"joined: {len(papers)} conference papers are also on ePrint")
 
-    # Counted over every paper CryptoDB lists for the venues, not just the ones
-    # on ePrint: an author's standing does not depend on where they preprint.
-    counts = papers_per_author(cryptodb)
-    papers = with_prolific_author(papers, counts, args.min_author_papers)
-    print(f"  {len(papers)} have an author with at least {args.min_author_papers} papers "
-          f"at these venues")
+    if not ROSTER.exists():
+        raise SystemExit(
+            f"no author roster at {ROSTER}\n"
+            f"Run: python -m build.main --authors > {ROSTER.name}, then edit it."
+        )
+    roster = parse_roster(ROSTER.read_text(encoding="utf-8"))
+    if not roster:
+        raise SystemExit(f"the author roster at {ROSTER} lists nobody")
+    papers = by_roster(papers, roster)
+    print(f"  {len(papers)} are by one of the {len(roster)} authors on {ROSTER.name}")
 
     wanted = [
         (start + dt.timedelta(days=i)).isoformat()
@@ -172,6 +178,34 @@ def plan(args) -> None:
     lock["generated"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
     save_lock(lock)
     print(f"\nschedule now covers {len(lock['days'])} days, {added} added -> {LOCK}")
+
+
+def authors(args) -> None:
+    """Print the roster of authors eligible to carry a puzzle.
+
+    Deliberately written to stdout rather than over `authors.txt`: the file is
+    meant to be edited by hand, and a regeneration that silently reinstated
+    everyone struck off it would undo that work. Redirect it, then diff.
+    """
+    year = dt.datetime.now(dt.UTC).year
+    print(f"harvesting CryptoDB ({' / '.join(v.upper() for v in VENUES)})...", file=sys.stderr)
+    cryptodb = harvest_cryptodb(CACHE, year + 1, refresh=args.refresh)
+    rows = author_roster(cryptodb, args.min_author_papers)
+
+    print("# Authors eligible to carry a puzzle: a paper is scheduled only if at least")
+    print("# one of its authors is listed here.")
+    print("#")
+    print(f"# Generated with: python -m build.main --authors --min-author-papers {args.min_author_papers}")
+    print(f"# {len(rows)} authors, from {len(cryptodb)} papers at "
+          f"{' / '.join(v.upper() for v in VENUES)}.")
+    print("#")
+    print("# Columns: CryptoDB author key (iacr.org/cryptodb/author.php?authorkey=N),")
+    print("# papers at those venues, name. Delete or comment out a line to bar that")
+    print("# author. Only the key is read; the count is informational and goes stale.")
+    print("#")
+    for key, count, name in rows:
+        print(f"{key:>7}  {count:>4}  {name}")
+    print(f"\nwrote {len(rows)} authors", file=sys.stderr)
 
 
 # -------------------------------------------------------------------- build
@@ -286,13 +320,16 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--plan", action="store_true", help="extend schedule.json instead of building")
+    parser.add_argument("--authors", action="store_true",
+                        help="print the eligible-author roster to stdout instead of building")
     parser.add_argument("--days", type=int, default=180, help="days to plan ahead (--plan)")
     parser.add_argument("--start", default="", help="first day to plan (--plan, default: today UTC)")
     parser.add_argument("--seed", type=int, default=20260901, help="schedule shuffle seed (--plan)")
     parser.add_argument("--refresh", action="store_true", help="re-harvest IACR metadata (--plan)")
-    parser.add_argument("--min-author-papers", type=int, default=35,
-                        help="require an author with at least this many papers at the "
-                             "venues, per CryptoDB (--plan)")
+    parser.add_argument("--min-author-papers", type=int, default=20,
+                        help="lower bound on papers at the venues for the roster "
+                             "(--authors); which of those authors count is then "
+                             "whatever authors.txt still lists")
     parser.add_argument("--back", type=int, default=2, help="days before today to keep serving")
     parser.add_argument("--horizon", type=int, default=21, help="days ahead to build")
     parser.add_argument("--today", default="", help="override today's date (testing)")
@@ -301,7 +338,9 @@ def main() -> None:
     args = parser.parse_args()
 
     CACHE.mkdir(parents=True, exist_ok=True)
-    if args.plan:
+    if args.authors:
+        authors(args)
+    elif args.plan:
         plan(args)
     else:
         build(args)

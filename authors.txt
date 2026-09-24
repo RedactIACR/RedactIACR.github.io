@@ -1,0 +1,90 @@
+# Authors eligible to carry a puzzle: a paper is scheduled only if at least
+# one of its authors is listed here.
+#
+# Generated with: python -m build.main --authors --min-author-papers 20
+# 232 authors, from 8157 papers at CRYPTO / EUROCRYPT / ASIACRYPT / TCC.
+#
+# Columns: CryptoDB author key (iacr.org/cryptodb/author.php?authorkey=N),
+# papers at those venues, name. Delete or comment out a line to bar that
+# author. Only the key is read; the count is informational and goes stale.
+#
+   1221   141  Yuval Ishai
+    654   129  Amit Sahai
+    282   126  Rafail Ostrovsky
+  10427   124  Ivan Damgård
+   1259   112  Brent Waters
+     36    99  Mihir Bellare
+   1305    95  Yevgeniy Dodis
+    350    91  Jonathan Katz
+   3989    89  Daniel Wichs
+    186    89  Moti Yung
+   6276    86  Abhishek Jain
+    230    86  Dan Boneh
+   1714    86  Stefano Tessaro
+  10248    85  Ueli Maurer
+    639    82  Rafael Pass
+   1348    80  Hoeteck Wee
+    641    80  Vinod Vaikuntanathan
+   4645    77  Sanjam Garg
+   7700    73  Mark Zhandry
+    232    72  Shai Halevi
+   1187    71  Krzysztof Pietrzak
+     43    69  Adi Shamir
+    609    69  Ran Canetti
+    303    62  Eike Kiltz
+   9805    60  Giulio Malavolta
+    424    60  Jesper Buus Nielsen
+   6059    58  Zvika Brakerski
+    499    57  Moni Naor
+   4316    56  Huijia Lin
+   9401    54  Geoffroy Couteau
+    647    53  Dennis Hofheinz
+   5742    53  Elaine Shi
+     49    53  Ronald Cramer
+   7530    50  Nico Döttling
+   9212    49  David J. Wu
+    325    48  Craig Gentry
+   1153    48  Shafi Goldwasser
+   9031    47  Dakshita Khurana
+   1203    46  Yehuda Lindell
+    236    45  Antoine Joux
+    491    45  Silvio Micali
+   1918    45  Yael Tauman Kalai
+   1682    44  Gil Segev
+   7928    44  Ilan Komargodski
+   7596    43  Elette Boyle
+   1137    43  Eyal Kushilevitz
+   1139    43  Hugo Krawczyk
+   1235    42  Amos Beimel
+    418    42  Daniele Micciancio
+   9971    41  Akshayaram Srinivasan
+   7782    41  Alessandro Chiesa
+   6293    41  Nir Bitansky
+   6265    41  Shweta Agrawal
+   1597    39  Alon Rosen
+    360    39  Jens Groth
+   9063    38  Peter Scholl
+   7940    36  Ron D. Rothblum
+   1691    34  Benny Applebaum
+    502    34  Chris Peikert
+   9671    33  Aayush Jain
+     44    33  Leonid Reyzin
+   1170    33  Oded Goldreich
+   1183    32  Victor Shoup
+    214    32  Vladimir Kolesnikov
+   7746    31  Omer Paneth
+   4323    31  Vadim Lyubashevsky
+   8657    29  Eylon Yogev
+   1175    29  Salil P. Vadhan
+   1707    28  Iftach Haitner
+  10791    26  James Bartusek
+  11823    26  Lawrence Roy
+    492    25  Adam Smith
+   1255    24  Cynthia Dwork
+  10080    23  Marshall Ball
+   8737    22  Venkata Koppula
+   9472    21  Allison B. Lewko
+   2392    21  Guy N. Rothblum
+    487    21  Helger Lipmaa
+   9179    20  Prashant Nalini Vasudevan
+    545    20  Ronald L. Rivest

@@ -6,7 +6,7 @@ import datetime as dt
 import random
 import re
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
 
 # Inline LaTeX that shows up in ePrint titles: $x^2$, \mathbb{F}, {AES}, \'e ...
 _MATH_SPAN_RE = re.compile(r"\$[^$]*\$")
@@ -92,12 +92,48 @@ def papers_per_author(cryptodb: list[dict]) -> Counter:
     return counts
 
 
-def with_prolific_author(papers: list[dict], counts: Counter, minimum: int) -> list[dict]:
-    """Papers with at least one author who has `minimum` papers at the venues."""
-    return [
-        paper for paper in papers
-        if any(counts[key] >= minimum for key in paper["authorKeys"])
+def author_roster(cryptodb: list[dict], minimum: int) -> list[tuple[str, int, str]]:
+    """Authors with at least `minimum` papers at the venues, most papers first.
+
+    The name is the spelling CryptoDB uses most often for that author key: the
+    same person turns up as "Ivan Damgård" and "Ivan Damgard" over the years,
+    and the key is what ties those together.
+    """
+    counts = papers_per_author(cryptodb)
+    spellings: dict[str, Counter] = defaultdict(Counter)
+    for paper in cryptodb:
+        for author in paper["authors"]:
+            spellings[author["key"]][author["name"]] += 1
+
+    rows = [
+        # sorted() first, so a tie between two spellings resolves the same way
+        # on every run rather than by dict order.
+        (key, count, max(sorted(spellings[key]), key=lambda name: spellings[key][name]))
+        for key, count in counts.items()
+        if count >= minimum
     ]
+    rows.sort(key=lambda row: (-row[1], row[2]))
+    return rows
+
+
+def parse_roster(text: str) -> set[str]:
+    """The author keys listed in a roster file.
+
+    One author per line, the key first; "#" starts a comment and blank lines
+    are skipped, so a line can simply be deleted or commented out to bar that
+    author from carrying a puzzle.
+    """
+    keys = set()
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            keys.add(line.split()[0])
+    return keys
+
+
+def by_roster(papers: list[dict], keys: set[str]) -> list[dict]:
+    """Papers with at least one author on the roster."""
+    return [paper for paper in papers if any(key in keys for key in paper["authorKeys"])]
 
 
 def shuffled_pool(
