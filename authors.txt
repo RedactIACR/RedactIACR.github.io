@@ -1,13 +1,3 @@
-# Authors eligible to carry a puzzle: a paper is scheduled only if at least
-# one of its authors is listed here.
-#
-# Generated with: python -m build.main --authors --min-author-papers 20
-# 232 authors, from 8157 papers at CRYPTO / EUROCRYPT / ASIACRYPT / TCC.
-#
-# Columns: CryptoDB author key (iacr.org/cryptodb/author.php?authorkey=N),
-# papers at those venues, name. Delete or comment out a line to bar that
-# author. Only the key is read; the count is informational and goes stale.
-#
    1221   141  Yuval Ishai
     654   129  Amit Sahai
     282   126  Rafail Ostrovsky

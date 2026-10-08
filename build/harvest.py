@@ -15,6 +15,7 @@ import html
 import json
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -53,6 +54,15 @@ _AUTHORS_BLOCK_RE = re.compile(r'<div class="authors"[^>]*>(.*?)</div>', re.S)
 _AUTHOR_RE = re.compile(r'<a href="author\.php\?authorkey=(\d+)">(.*?)</a>', re.S)
 
 
+class Blocked(Exception):
+    """The site answered with a Cloudflare bot challenge instead of content.
+
+    ePrint puts its full-text PDFs behind one (metadata stays open). It is not
+    a fault of the particular paper, and retrying or moving on to the next
+    paper only repeats it, so callers have to stop downloading rather than skip.
+    """
+
+
 def _fetch(url: str, *, retries: int = 3, pause: float = 0.5) -> bytes:
     """GET a URL with a descriptive user agent and a small retry budget."""
     last: Exception | None = None
@@ -61,6 +71,12 @@ def _fetch(url: str, *, retries: int = 3, pause: float = 0.5) -> bytes:
             request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(request, timeout=60) as response:
                 return response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.headers.get("cf-mitigated") == "challenge":
+                raise Blocked(f"{urllib.parse.urlsplit(url).netloc} answered {url} "
+                              f"with a Cloudflare challenge") from exc
+            last = exc
+            time.sleep(pause * (attempt + 1))
         except Exception as exc:  # noqa: BLE001 - network errors are all retryable here
             last = exc
             time.sleep(pause * (attempt + 1))

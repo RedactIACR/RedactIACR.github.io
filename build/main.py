@@ -11,8 +11,9 @@ the same paper to every first day, and the pool grows as IACR publishes, which
 reshuffles every later assignment too.
 
 Planning needs the network (IACR metadata plus every scheduled PDF, which it
-downloads to prove the paper is usable). Building needs only the PDFs, which
-are cached, so routine deploys touch eprint.iacr.org once per new day.
+downloads to prove the paper is usable) and commits each scheduled PDF under
+`papers/`. Building reads only those committed PDFs and never downloads:
+ePrint puts its PDFs behind a Cloudflare bot challenge, so CI cannot fetch them.
 """
 
 from __future__ import annotations
@@ -28,32 +29,56 @@ from pathlib import Path
 from .boxes import ExtractionError, extract_boxes, pack_pages, word_tokens
 from .citations import Citations, LookupFailed
 from .corpus import author_roster, by_roster, join_venues, parse_roster, shuffled_pool
-from .harvest import VENUES, _fetch, harvest_cryptodb, harvest_eprint
+from .harvest import VENUES, Blocked, _fetch, harvest_cryptodb, harvest_eprint
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / "cache"
 OUT = ROOT / "site" / "puzzles"
 LOCK = ROOT / "schedule.json"
 ROSTER = ROOT / "authors.txt"
+# The PDF of every scheduled paper, committed next to schedule.json so that a
+# build never has to reach eprint.iacr.org.
+PAPERS = ROOT / "papers"
 
 
-def fetch_pdf(eprint_id: str, *, refresh: bool = False) -> bytes:
-    pdf_dir = CACHE / "pdf"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
-    path = pdf_dir / f"{eprint_id.replace('/', '-')}.pdf"
-    if path.exists() and not refresh:
-        return path.read_bytes()
+class MissingPDF(Exception):
+    """A scheduled day whose PDF is not committed under papers/."""
+
+
+def _pdf_name(eprint_id: str) -> str:
+    return f"{eprint_id.replace('/', '-')}.pdf"
+
+
+def load_pdf(eprint_id: str) -> bytes:
+    """The committed PDF of a scheduled paper."""
+    path = PAPERS / _pdf_name(eprint_id)
+    if not path.exists():
+        raise MissingPDF(f"{path.relative_to(ROOT)} is not committed")
+    return path.read_bytes()
+
+
+def fetch_pdf(eprint_id: str, *, download: bool = True) -> bytes | None:
+    """A candidate's PDF: committed, cached by an earlier plan, or downloaded.
+
+    None if it is on neither disk and `download` is off.
+    """
+    name = _pdf_name(eprint_id)
+    for path in (PAPERS / name, CACHE / "pdf" / name):
+        if path.exists():
+            return path.read_bytes()
+    if not download:
+        return None
     data = _fetch(f"https://eprint.iacr.org/{eprint_id}.pdf")
     if not data.startswith(b"%PDF"):
         raise ExtractionError("response was not a PDF")
-    path.write_bytes(data)
+    (CACHE / "pdf").mkdir(parents=True, exist_ok=True)
+    (CACHE / "pdf" / name).write_bytes(data)
     time.sleep(0.4)  # be a good citizen towards eprint.iacr.org
     return data
 
 
-def build_puzzle(date: str, paper: dict) -> dict:
+def build_puzzle(date: str, paper: dict, pdf_bytes: bytes) -> dict:
     """Ship the paper itself, plus where every redactable thing sits on it."""
-    pdf_bytes = fetch_pdf(paper["id"])
     document = extract_boxes(pdf_bytes)
     pages, keys = pack_pages(document["pages"])
 
@@ -137,16 +162,32 @@ def plan(args) -> None:
     print(f"planning {len(wanted)} new days ({wanted[0]} .. {wanted[-1]})")
 
     added = 0
+    blocked = False
+    # Candidates passed over only because their PDF could not be downloaded,
+    # in draw order: what to fetch by hand if ePrint refuses the script.
+    by_hand = []
     for iso in wanted:
         while queue:
             paper = queue.pop(0)
             try:
+                pdf = fetch_pdf(paper["id"], download=not blocked)
+                if pdf is None:
+                    by_hand.append(paper["id"])
+                    continue
                 # Building it here is the point: a day only enters the
                 # schedule once its PDF is proven to extract.
-                build_puzzle(iso, paper)
+                build_puzzle(iso, paper, pdf)
+            except Blocked as exc:
+                _warn(f"{exc}; planning on from the PDFs already on disk only")
+                blocked = True
+                by_hand.append(paper["id"])
+                continue
             except (ExtractionError, RuntimeError) as exc:
                 print(f"  skip {paper['id']}: {exc}")
                 continue
+
+            PAPERS.mkdir(exist_ok=True)
+            (PAPERS / _pdf_name(paper["id"])).write_bytes(pdf)
 
             # The count is shown on the result card but decides nothing, so a
             # lookup that cannot be completed leaves the day without one
@@ -170,7 +211,9 @@ def plan(args) -> None:
             citations.save()
             break
         else:
-            raise SystemExit(f"ran out of usable papers at {iso}")
+            if not blocked:
+                raise SystemExit(f"ran out of usable papers at {iso}")
+            break
 
     citations.save()
 
@@ -178,6 +221,14 @@ def plan(args) -> None:
     lock["generated"] = dt.datetime.now(dt.UTC).isoformat(timespec="seconds")
     save_lock(lock)
     print(f"\nschedule now covers {len(lock['days'])} days, {added} added -> {LOCK}")
+
+    unplanned = len(wanted) - added
+    if unplanned:
+        _warn(f"{unplanned} of the {len(wanted)} days asked for are still unplanned")
+        print(f"\nePrint only serves PDFs to browsers. Save these into {CACHE / 'pdf'}/ "
+              f"as YYYY-NNN.pdf, then plan again:")
+        for eprint_id in by_hand[:unplanned]:
+            print(f"  https://eprint.iacr.org/{eprint_id}.pdf")
 
 
 def authors(args) -> None:
@@ -246,10 +297,8 @@ def build(args) -> None:
         if (today + dt.timedelta(days=offset)).isoformat() not in lock["days"]
     ]
     if missing:
-        note = (f"schedule runs out on {max(lock['days'])}; {len(missing)} of the next "
-                f"{args.horizon} days are unplanned - run: python -m build.main --plan")
-        # Surface it as a CI annotation, not just a line in a long log.
-        print(f"::warning::{note}" if os.environ.get("GITHUB_ACTIONS") else f"warning: {note}")
+        _warn(f"schedule runs out on {max(lock['days'])}; {len(missing)} of the next "
+              f"{args.horizon} days are unplanned - run: python -m build.main --plan")
 
     OUT.mkdir(parents=True, exist_ok=True)
     keep = set(wanted)
@@ -271,7 +320,18 @@ def build(args) -> None:
         # leave yesterday's paper published under today's date.
         if not args.force and _built_id(iso) == paper["id"] and (OUT / "pdf" / f"{iso}.pdf").exists():
             continue
-        puzzle = build_puzzle(iso, paper)
+        try:
+            puzzle = build_puzzle(iso, paper, load_pdf(paper["id"]))
+        except (MissingPDF, ExtractionError) as exc:
+            # Only today has to exist. A later day that cannot be built must
+            # not hold back today's deploy; there is time to fix it.
+            if iso == today.isoformat():
+                raise SystemExit(f"cannot build today's puzzle ({iso}, {paper['id']}): {exc}")
+            _warn(f"skipped {iso} ({paper['id']}): {exc}")
+            # Never leave an older build of another paper under this date.
+            (OUT / f"{iso}.json").unlink(missing_ok=True)
+            (OUT / "pdf" / f"{iso}.pdf").unlink(missing_ok=True)
+            continue
         (OUT / f"{iso}.json").write_text(
             json.dumps(puzzle, ensure_ascii=False, separators=(",", ":")),
             encoding="utf-8",
@@ -302,6 +362,11 @@ def build(args) -> None:
         encoding="utf-8",
     )
     print(f"\nbuilt {built} new puzzles; site now serves {len(dates)} days ({dates[0]} .. {dates[-1]})")
+
+
+def _warn(note: str) -> None:
+    # Surface it as a CI annotation, not just a line in a long log.
+    print(f"::warning::{note}" if os.environ.get("GITHUB_ACTIONS") else f"warning: {note}")
 
 
 def _built_id(iso: str) -> str | None:

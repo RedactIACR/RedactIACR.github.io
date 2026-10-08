@@ -34,8 +34,10 @@ later assignment.
 
 `--plan` needs the network (IACR metadata, plus every newly scheduled PDF,
 which it downloads to prove the paper extracts before fixing it in the
-schedule). A plain build needs only PDFs, which are cached — so a routine
-deploy fetches one new paper.
+schedule) and copies each scheduled PDF into `papers/`, which is committed
+alongside `schedule.json`. A plain build reads only `papers/` and never
+downloads anything — ePrint answers scripted PDF downloads with a Cloudflare
+challenge, so CI could not fetch them anyway.
 
 ## Automatic deployment
 
@@ -50,11 +52,18 @@ already published before midnight, so the 00:00 UTC rollover is seamless even
 if a run is late. A warm-cache rebuild takes about nine seconds.
 
 `site/puzzles/` is therefore **not committed**: CI generates it and uploads it
-straight to Pages, so the repository stays small.
+straight to Pages. Only the source PDFs in `papers/` are (about 0.5 MB a day);
+the PDFs of days that have passed can be deleted from it.
 
-When the schedule starts running out the deploy logs a CI warning. Run
+Only today's puzzle has to build. A later day that cannot — say its PDF was
+never committed — is skipped with a CI warning rather than failing the deploy.
+
+When the schedule starts running out the deploy logs a CI warning; extend it
+locally (see [Extending the schedule](#extending-the-schedule)) and commit
+`schedule.json` together with `papers/`.
 [`.github/workflows/plan.yml`](.github/workflows/plan.yml) ("Extend the
-schedule") from the Actions tab; it plans further ahead and commits the result.
+schedule") does the same from the Actions tab, but only works while ePrint lets
+scripts download PDFs, which at the moment it does not.
 
 Two GitHub limits worth knowing: Pages allows a 1 GB site and roughly 100 GB of
 bandwidth a month, and a play costs about 1 MB (the PDF plus its boxes), so the
@@ -78,9 +87,9 @@ title. That yields roughly **4,500 papers** that both appeared at one of the
 four venues and are available on ePrint. From those, a seeded shuffle assigns
 one paper per day.
 
-Only the scheduled papers' PDFs are downloaded — about 100 per build, not the
-whole archive. Metadata harvests and PDFs are cached under `cache/`, so
-re-running the build is cheap.
+Only candidate papers' PDFs are downloaded, not the whole archive. Metadata
+harvests and downloaded PDFs are cached under `cache/`, so re-planning is
+cheap; the PDFs of papers that made it into the schedule go to `papers/`.
 
 ### Only papers by a listed author
 
@@ -190,6 +199,13 @@ reassigned, and papers already scheduled are excluded from the draw, so nothing
 repeats and no published day changes. `--refresh` re-harvests IACR metadata,
 worth doing once a year as new proceedings appear.
 
+ePrint's metadata (OAI-PMH) is open to scripts, but its PDFs sit behind a
+Cloudflare challenge that only a browser passes. When the planner meets it, it
+stops downloading, schedules what it can from PDFs already on disk, and prints
+the URLs of the next papers it would have used. Open those in a browser, save
+each into `cache/pdf/` as `YYYY-NNN.pdf` (e.g. `2013-128.pdf`), and plan again.
+Commit `schedule.json` and the new files in `papers/` together.
+
 Useful build flags: `--all` builds every day in the schedule rather than the
 window, `--today` overrides the date for testing, and `--force` rebuilds days
 that already exist.
@@ -198,6 +214,7 @@ that already exist.
 
 ```
 schedule.json  committed: which paper runs on which day, append-only
+papers/        committed: the PDF of every scheduled paper, YYYY-NNN.pdf
 .github/
   workflows/   daily build + Pages deploy; manual schedule extension
 build/

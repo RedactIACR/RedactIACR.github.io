@@ -320,6 +320,108 @@
     "Yehuda Lindell"
    ]
   },
+  "2026-10-08": {
+   "id": "2022/658",
+   "venue": "EUROCRYPT",
+   "year": 2022,
+   "title": "Unclonable Polymers and Their Cryptographic Applications",
+   "authors": [
+    "Ghada Almashaqbeh",
+    "Ran Canetti",
+    "Yaniv Erlich",
+    "Jonathan Gershoni",
+    "Tal Malkin",
+    "Itsik Pe’er",
+    "Anna Roitburd-Berman",
+    "Eran Tromer"
+   ],
+   "citations": 5
+  },
+  "2026-10-09": {
+   "id": "2020/617",
+   "venue": "TCC",
+   "year": 2020,
+   "title": "New Techniques in Replica Encodings with Client Setup",
+   "authors": [
+    "Rachit Garg",
+    "George Lu",
+    "Brent Waters"
+   ],
+   "citations": 5
+  },
+  "2026-10-10": {
+   "id": "2025/508",
+   "venue": "CRYPTO",
+   "year": 2025,
+   "title": "Towards Building Scalable Constant-Round MPC from Minimal Assumptions via Round Collapsing",
+   "authors": [
+    "Vipul Goyal",
+    "Junru Li",
+    "Rafail Ostrovsky",
+    "Yifan Song"
+   ],
+   "citations": 2
+  },
+  "2026-10-11": {
+   "id": "2025/536",
+   "venue": "TCC",
+   "year": 2025,
+   "title": "A Fiat–Shamir Transformation From Duplex Sponges",
+   "authors": [
+    "Alessandro Chiesa",
+    "Michele Orrù"
+   ],
+   "citations": 4
+  },
+  "2026-10-12": {
+   "id": "2012/404",
+   "venue": "CRYPTO",
+   "year": 2012,
+   "title": "Secret Sharing Schemes for Very Dense Graphs",
+   "authors": [
+    "Amos Beimel",
+    "Oriol Farràs",
+    "Yuval Mintz"
+   ],
+   "citations": 50
+  },
+  "2026-10-13": {
+   "id": "2025/2282",
+   "venue": "EUROCRYPT",
+   "year": 2026,
+   "title": "When Simple Permutations Mix Poorly: Limited Independence Does Not Imply Pseudorandomness",
+   "authors": [
+    "Jesko Dujmovic",
+    "Angelos Pelecanos",
+    "Stefano Tessaro"
+   ],
+   "citations": 0
+  },
+  "2026-10-14": {
+   "id": "2015/772",
+   "venue": "TCC",
+   "year": 2016,
+   "title": "Non-Malleable Encryption: Simpler, Shorter, Stronger",
+   "authors": [
+    "Sandro Coretti",
+    "Yevgeniy Dodis",
+    "Björn Tackmann",
+    "Daniele Venturi"
+   ],
+   "citations": null
+  },
+  "2026-10-15": {
+   "id": "2016/128",
+   "venue": "EUROCRYPT",
+   "year": 2017,
+   "title": "Removing the Strong RSA Assumption from Arguments over the Integers",
+   "authors": [
+    "Geoffroy Couteau",
+    "Thomas Peters",
+    "David Pointcheval"
+   ],
+   "citations": 44
+  },
   "2026-10-16": {
    "id": "2013/307",
    "venue": "CRYPTO",
@@ -331,6 +433,39 @@
     "Beni Paskin-Cherniavsky"
    ]
   },
+  "2026-10-17": {
+   "id": "2019/962",
+   "venue": "CRYPTO",
+   "year": 2020,
+   "title": "New Constructions of Hinting PRGs, OWFs with Encryption, and more",
+   "authors": [
+    "Rishab Goyal",
+    "Satyanarayana Vusirikala",
+    "Brent Waters"
+   ],
+   "citations": 11
+  },
+  "2026-10-18": {
+   "id": "2024/993",
+   "venue": "CRYPTO",
+   "year": 2024,
+   "title": "Limits on the Power of Prime-Order Groups: Separating Q-Type from Static Assumptions",
+   "authors": [
+    "George Lu",
+    "Mark Zhandry"
+   ],
+   "citations": null
+  },
+  "2026-10-19": {
+   "id": "2020/1420",
+   "venue": "TCC",
+   "year": 2020,
+   "title": "Functional Encryption for Quadratic Functions from k-Lin, Revisited",
+   "authors": [
+    "Hoeteck Wee"
+   ],
+   "citations": 25
+  },
   "2026-10-20": {
    "id": "2012/461",
    "venue": "CRYPTO",
@@ -340,6 +475,18 @@
     "Nir Bitansky",
     "Alessandro Chiesa"
    ]
+  },
+  "2026-10-21": {
+   "id": "2023/250",
+   "venue": "EUROCRYPT",
+   "year": 2023,
+   "title": "A Lower Bound on the Length of Signatures Based on Group Actions and Generic Isogenies",
+   "authors": [
+    "Dan Boneh",
+    "Jiaxin Guan",
+    "Mark Zhandry"
+   ],
+   "citations": 10
   },
   "2026-10-22": {
    "id": "2009/041",
@@ -361,6 +508,66 @@
     "Dan Boneh",
     "Xavier Boyen"
    ]
+  },
+  "2026-10-24": {
+   "id": "2020/1157",
+   "venue": "TCC",
+   "year": 2020,
+   "title": "Secure Massively Parallel Computation for Dishonest Majority",
+   "authors": [
+    "Rex Fernando",
+    "Ilan Komargodski",
+    "Yanyi Liu",
+    "Elaine Shi"
+   ],
+   "citations": 5
+  },
+  "2026-10-25": {
+   "id": "2020/663",
+   "venue": "TCC",
+   "year": 2020,
+   "title": "Super-Linear Time-Memory Trade-Offs for Symmetric Encryption",
+   "authors": [
+    "Wei Dai",
+    "Stefano Tessaro",
+    "Xihu Zhang"
+   ],
+   "citations": 6
+  },
+  "2026-10-26": {
+   "id": "2023/673",
+   "venue": "CRYPTO",
+   "year": 2023,
+   "title": "Tracing Quantum State Distinguishers via Backtracking",
+   "authors": [
+    "Mark Zhandry"
+   ],
+   "citations": 2
+  },
+  "2026-10-27": {
+   "id": "2017/1056",
+   "venue": "CRYPTO",
+   "year": 2018,
+   "title": "Round-Optimal Secure Multi-Party Computation",
+   "authors": [
+    "Shai Halevi",
+    "Carmit Hazay",
+    "Antigoni Polychroniadou",
+    "Muthuramakrishnan Venkitasubramaniam"
+   ],
+   "citations": 48
+  },
+  "2026-10-28": {
+   "id": "2018/364",
+   "venue": "TCC",
+   "year": 2018,
+   "title": "Perfectly Secure Oblivious Parallel RAM",
+   "authors": [
+    "T-H.  Hubert Chan",
+    "Kartik Nayak",
+    "Elaine Shi"
+   ],
+   "citations": 28
   },
   "2026-10-29": {
    "id": "2004/099",
@@ -384,6 +591,51 @@
     "Rafael Pass"
    ]
   },
+  "2026-10-31": {
+   "id": "2015/703",
+   "venue": "TCC",
+   "year": 2016,
+   "title": "Point-Function Obfuscation: A Framework and Generic Constructions",
+   "authors": [
+    "Mihir Bellare",
+    "Igors Stepanovs"
+   ],
+   "citations": 35
+  },
+  "2026-11-01": {
+   "id": "2017/942",
+   "venue": "TCC",
+   "year": 2017,
+   "title": "On Secure Two-Party Computation in Three Rounds",
+   "authors": [
+    "Prabhanjan Ananth",
+    "Abhishek Jain"
+   ],
+   "citations": 11
+  },
+  "2026-11-02": {
+   "id": "2023/1778",
+   "venue": "TCC",
+   "year": 2023,
+   "title": "Immunizing Backdoored PRGs",
+   "authors": [
+    "Marshall Ball",
+    "Yevgeniy Dodis",
+    "Eli Goldin"
+   ],
+   "citations": 1
+  },
+  "2026-11-03": {
+   "id": "2021/918",
+   "venue": "TCC",
+   "year": 2021,
+   "title": "The Round Complexity of Quantum Zero-Knowledge",
+   "authors": [
+    "Orestis Chardouvelis",
+    "Giulio Malavolta"
+   ],
+   "citations": 4
+  },
   "2026-11-04": {
    "id": "2018/429",
    "venue": "CRYPTO",
@@ -395,6 +647,28 @@
     "Chaoping Xing",
     "Chen Yuan"
    ]
+  },
+  "2026-11-05": {
+   "id": "2003/050",
+   "venue": "EUROCRYPT",
+   "year": 2003,
+   "title": "Concealment and its Applications to Authenticated Encryption",
+   "authors": [
+    "Yevgeniy Dodis",
+    "Jee Hea An"
+   ],
+   "citations": 43
+  },
+  "2026-11-06": {
+   "id": "2026/318",
+   "venue": "EUROCRYPT",
+   "year": 2026,
+   "title": "Distributed Monotone-Policy Encryption for DNFs from Lattices",
+   "authors": [
+    "Jeffrey Champion",
+    "David J. Wu"
+   ],
+   "citations": 1
   },
   "2026-11-10": {
    "id": "2012/078",
